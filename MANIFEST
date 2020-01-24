@@ -311,6 +311,8 @@ plugins/python
 plugins/python/Makefile.in
 plugins/python/example_conversation.py
 plugins/python/example_debugging.py
+plugins/python/example_events_socket.py
+plugins/python/example_events_timer.py
 plugins/python/example_group_plugin.py
 plugins/python/example_io_plugin.py
 plugins/python/example_policy_plugin.py
