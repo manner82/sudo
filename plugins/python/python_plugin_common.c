@@ -252,11 +252,15 @@ _python_plugin_register_plugin_in_py_ctx(void)
 }
 
 int
-python_plugin_init(struct PluginContext *plugin_ctx, char * const plugin_options[])
+python_plugin_init(struct PluginContext *plugin_ctx, char * const plugin_options[],
+                   event_alloc_func *event_alloc)
 {
     debug_decl(python_plugin_init, PYTHON_DEBUG_PLUGIN_LOAD);
 
     int rc = SUDO_RC_ERROR;
+
+    if (event_alloc != NULL)
+        sudo_event_alloc = event_alloc;
 
     if (_python_plugin_register_plugin_in_py_ctx() != SUDO_RC_OK)
         goto cleanup;

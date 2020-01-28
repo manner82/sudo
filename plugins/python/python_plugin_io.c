@@ -95,7 +95,7 @@ python_plugin_io_open(struct IOPluginContext *io_ctx,
         debug_return_int(rc);
 
     struct PluginContext *plugin_ctx = BASE_CTX(io_ctx);
-    rc = python_plugin_init(plugin_ctx, plugin_options);
+    rc = python_plugin_init(plugin_ctx, plugin_options, io_ctx->io_plugin->event_alloc);
     if (rc != SUDO_RC_OK)
         debug_return_int(rc);
 

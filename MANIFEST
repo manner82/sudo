@@ -332,6 +332,7 @@ plugins/python/regress/testhelpers.c
 plugins/python/regress/testhelpers.h
 plugins/python/sudo_python_debug.c
 plugins/python/sudo_python_debug.h
+plugins/python/python_event_api.c
 plugins/python/sudo_python_module.c
 plugins/python/sudo_python_module.h
 plugins/sample/Makefile.in

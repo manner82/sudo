@@ -518,3 +518,27 @@ py_object_set_attr_string(PyObject *py_object, const char *attr_name, const char
     PyObject_SetAttrString(py_object, attr_name, py_value);
     Py_CLEAR(py_value);
 }
+
+void
+py_timedelta_to_timespec(PyObject *py_tdelta, struct timespec *tspec)
+{
+    debug_decl(py_timedelta_to_timespec, PYTHON_DEBUG_INTERNAL);
+    PyObject *py_seconds = NULL;
+
+    // Pseudo code: "tspec->tv_sec" = timedelta.total_seconds()
+    py_seconds = PyObject_CallMethod(py_tdelta, "total_seconds", NULL);
+    if (py_seconds == NULL)
+        goto cleanup;
+
+    tspec->tv_sec = PyLong_AsLong(py_seconds);
+    if (PyErr_Occurred())
+        goto cleanup;
+
+    // Pseudo code: "tspec->tv_nsec" = timedelta.microseconds * 1000
+    tspec->tv_nsec = py_object_get_optional_attr_number(py_tdelta, "microseconds") * 1000;
+
+cleanup:
+    Py_CLEAR(py_seconds);
+
+    debug_return;
+}

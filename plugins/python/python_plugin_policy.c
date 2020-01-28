@@ -60,7 +60,7 @@ python_plugin_policy_open(unsigned int version, sudo_conv_t conversation,
     if (rc != SUDO_RC_OK)
         debug_return_int(rc);
 
-    rc = python_plugin_init(&plugin_ctx, plugin_options);
+    rc = python_plugin_init(&plugin_ctx, plugin_options, python_policy.event_alloc);
     if (rc != SUDO_RC_OK)
         debug_return_int(rc);
 

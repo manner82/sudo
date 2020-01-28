@@ -562,6 +562,9 @@ sudo_module_init(void)
     if (sudo_module_register_baseplugin(py_module) != SUDO_RC_OK)
         goto cleanup;
 
+    if (sudo_module_register_event_api(py_module) != SUDO_RC_OK)
+        goto cleanup;
+
 cleanup:
     if (PyErr_Occurred()) {
         Py_CLEAR(py_module);

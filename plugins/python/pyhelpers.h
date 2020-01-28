@@ -78,6 +78,8 @@ const char *py_object_get_optional_attr_string(PyObject *py_object, const char *
 void py_object_set_attr_number(PyObject *py_object, const char *attr_name, long long number);
 void py_object_set_attr_string(PyObject *py_object, const char *attr_name, const char *value);
 
+void py_timedelta_to_timespec(PyObject *py_tdelta, struct timespec *tspec);
+
 PyObject *py_create_version(unsigned int version);
 
 void py_debug_python_call(const char *class_name, const char *function_name,
@@ -90,5 +92,7 @@ void str_array_free(char ***array);
 int py_get_current_execution_frame(char **file_name, long *line_number, char **function_name);
 
 void py_ctx_reset(void);
+
+typedef struct sudo_plugin_event * (event_alloc_func)(void);  // TODO find a place
 
 #endif // SUDO_PLUGIN_PYHELPERS_H

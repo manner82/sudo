@@ -117,7 +117,7 @@ EXAMPLES = example_conversation.py  example_debugging.py  example_group_plugin.p
 
 OBJS =	python_plugin_common.lo python_plugin_policy.lo python_plugin_io.lo python_plugin_group.lo pyhelpers.lo \
 	python_importblocker.lo python_convmessage.lo sudo_python_module.lo sudo_python_debug.lo \
-        python_baseplugin.lo
+	python_baseplugin.lo python_event_api.lo
 
 IOBJS = $(OBJS:.lo=.i)
 
@@ -256,6 +256,12 @@ python_convmessage.i: $(srcdir)/python_convmessage.c
 	$(CC) -E -o $@ $(CPPFLAGS) $<
 python_convmessage.plog: python_convmessage.i
 	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/python_convmessage.c --i-file $< --output-file $@
+python_event_api.lo: $(srcdir)/python_event_api.c 
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/python_event_api.c
+python_event_api.i: $(srcdir)/python_event_api.c 
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+python_event_api.plog: python_event_api.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/python_event_api.c --i-file $< --output-file $@
 python_importblocker.lo: $(srcdir)/python_importblocker.c \
                          $(incdir)/compat/stdbool.h $(incdir)/sudo_util.h
 	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/python_importblocker.c

@@ -31,7 +31,7 @@ struct PluginContext {
 
 int python_plugin_register_logging(sudo_conv_t conversation, sudo_printf_t sudo_printf, char * const settings[]);
 
-int python_plugin_init(struct PluginContext *plugin_ctx, char * const plugin_options[]);
+int python_plugin_init(struct PluginContext *plugin_ctx, char * const plugin_options[], event_alloc_func *event_alloc);
 
 int python_plugin_construct_custom(struct PluginContext *plugin_ctx, PyObject *py_kwargs);
 

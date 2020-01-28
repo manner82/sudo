@@ -24,6 +24,8 @@
 extern PyObject *sudo_exc_SudoException;
 extern PyTypeObject *sudo_type_Plugin;
 extern PyTypeObject *sudo_type_ConvMessage;
+extern PyTypeObject *sudo_type_Event;
+extern event_alloc_func *sudo_event_alloc;
 
 PyObject *sudo_module_create_class(const char *class_name, PyMethodDef *class_methods);
 
@@ -41,6 +43,9 @@ int sudo_module_ConvMessages_to_c(PyObject *py_tuple, Py_ssize_t *num_msgs, stru
 
 CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION
 int sudo_module_register_baseplugin(PyObject *py_module);
+
+CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION
+int sudo_module_register_event_api(PyObject *py_module);
 
 PyMODINIT_FUNC sudo_module_init(void);
 
