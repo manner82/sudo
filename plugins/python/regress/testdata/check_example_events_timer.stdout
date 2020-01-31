@@ -1,0 +1,76 @@
+## event(id=1)->new()
+## event(id=1)->set(fd=none, events=1)
+## event(id=1)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=2)->new()
+## event(id=2)->set(fd=set, events=16)
+## event(id=2)->add(timeout_sec=-1, timeout_nsec=-1)
+## event(id=1)->free()
+Seconds left: 10
+## event(id=3)->new()
+## event(id=3)->set(fd=none, events=1)
+## event(id=3)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=3)->free()
+Seconds left: 9
+## event(id=4)->new()
+## event(id=4)->set(fd=none, events=1)
+## event(id=4)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=2)->free()
+Got a CONT signal, restarting the count down
+## event(id=5)->new()
+## event(id=5)->set(fd=set, events=16)
+## event(id=5)->add(timeout_sec=-1, timeout_nsec=-1)
+## event(id=4)->free()
+Seconds left: 10
+## event(id=6)->new()
+## event(id=6)->set(fd=none, events=1)
+## event(id=6)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=6)->free()
+Seconds left: 9
+## event(id=7)->new()
+## event(id=7)->set(fd=none, events=1)
+## event(id=7)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=7)->free()
+Seconds left: 8
+## event(id=8)->new()
+## event(id=8)->set(fd=none, events=1)
+## event(id=8)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=8)->free()
+Seconds left: 7
+## event(id=9)->new()
+## event(id=9)->set(fd=none, events=1)
+## event(id=9)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=9)->free()
+Seconds left: 6
+## event(id=10)->new()
+## event(id=10)->set(fd=none, events=1)
+## event(id=10)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=10)->free()
+Seconds left: 5
+## event(id=11)->new()
+## event(id=11)->set(fd=none, events=1)
+## event(id=11)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=11)->free()
+Seconds left: 4
+## event(id=12)->new()
+## event(id=12)->set(fd=none, events=1)
+## event(id=12)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=12)->free()
+Seconds left: 3
+## event(id=13)->new()
+## event(id=13)->set(fd=none, events=1)
+## event(id=13)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=13)->free()
+Seconds left: 2
+## event(id=14)->new()
+## event(id=14)->set(fd=none, events=1)
+## event(id=14)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=14)->free()
+Seconds left: 1
+## event(id=15)->new()
+## event(id=15)->set(fd=none, events=1)
+## event(id=15)->add(timeout_sec=1, timeout_nsec=0)
+## event(id=15)->free()
+Seconds left: 0
+## event(id=16)->new()
+## event(id=16)->loopbreak()
+## event(id=16)->free()

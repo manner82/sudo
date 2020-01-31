@@ -131,6 +131,12 @@ init(void)
     data.plugin_argv = create_str_array(1, NULL);
     data.user_env = create_str_array(1, NULL);
 
+    if (python_io)
+        python_io->event_alloc = NULL;
+
+    if (python_policy)
+        python_policy->event_alloc = NULL;
+
     return true;
 }
 
@@ -865,6 +871,244 @@ check_python_plugins_do_not_affect_each_other(void)
     return true;
 }
 
+struct TestPluginEvent {
+    struct sudo_plugin_event base;
+    int id;
+    sudo_plugin_ev_callback_t callback;
+    void *closure;
+};
+
+// TODO move out
+int
+_fake_event_set(struct sudo_plugin_event *pev, int fd, int events,
+                sudo_plugin_ev_callback_t callback, void *closure)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev; // TODO events to string?
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->set(fd=%s, events=%d)\n",
+                    test_event->id, fd < 0 ? "none" : "set", events);
+    test_event->callback = callback;
+    test_event->closure = closure;
+
+    if ((events & SUDO_PLUGIN_EV_SIGNAL) != 0)
+        data.last_signal_event = test_event;
+
+    if ((events & SUDO_PLUGIN_EV_READ) != 0)
+        data.last_read_event = test_event;
+
+    if ((events & SUDO_PLUGIN_EV_TIMEOUT) != 0)
+        data.last_timeout_event = test_event;
+
+    return true;
+}
+
+int
+_fake_event_add(struct sudo_plugin_event *pev, struct timespec *timeout)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->add(timeout_sec=%ld, timeout_nsec=%ld)\n",
+                    test_event->id,
+                    timeout == NULL ? -1 : timeout->tv_sec,
+                    timeout == NULL ? -1 : timeout->tv_nsec);
+    return true;
+}
+
+int
+_fake_event_del(struct sudo_plugin_event *pev)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->del()\n", test_event->id);
+    return true;
+}
+
+int
+_fake_event_pending(struct sudo_plugin_event *pev, int events, struct timespec *ts)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->pending(events=%d, timespec_sec=%ld, timespec_nsec=%ld)\n",
+                    test_event->id, events,
+                    ts == NULL ? -1 : ts->tv_sec,
+                    ts == NULL ? -1 : ts->tv_nsec);
+    return true;
+}
+
+int
+_fake_event_fd(struct sudo_plugin_event *pev)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->fd()\n", test_event->id);
+    return true;
+}
+
+void
+_fake_event_setbase(struct sudo_plugin_event *pev, void *base)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->setbase(base_null=%d)\n",
+                    test_event->id, base == NULL);
+}
+
+void
+_fake_event_loopbreak(struct sudo_plugin_event *pev)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->loopbreak()\n", test_event->id);
+}
+
+void
+_fake_event_free(struct sudo_plugin_event *pev)
+{
+    struct TestPluginEvent *test_event = (struct TestPluginEvent *)pev;
+    // If this call is missing from the output, it usually means that some
+    // reference count decrement is missing (eg. for one of the attributes of
+    // the event) and so destructor was not called.
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->free()\n", test_event->id);
+
+    if (test_event == data.last_read_event)
+        data.last_read_event = NULL;
+
+    if (test_event == data.last_signal_event)
+        data.last_signal_event = NULL;
+
+    if (test_event == data.last_timeout_event)
+        data.last_timeout_event = NULL;
+
+    free(test_event);
+}
+
+struct sudo_plugin_event * _fake_event_alloc(void)
+{
+    struct TestPluginEvent *event = calloc(1, sizeof(struct TestPluginEvent));
+
+    event->base.set = _fake_event_set;
+    event->base.add = _fake_event_add;
+    event->base.del = _fake_event_del;
+    event->base.pending = _fake_event_pending;
+    event->base.fd = _fake_event_fd;
+    event->base.setbase = _fake_event_setbase;
+    event->base.free = _fake_event_free;
+    event->base.loopbreak = _fake_event_loopbreak;
+
+    event->id = ++data.event_id_seq;
+
+    snprintf_append(data.stdout_str, MAX_OUTPUT, "## event(id=%d)->new()\n", event->id);
+
+    return (struct sudo_plugin_event *)event;
+}
+
+void
+simulate_timeout(void)
+{
+    data.last_timeout_event->callback(-1, SUDO_PLUGIN_EV_TIMEOUT,
+                                      data.last_timeout_event->closure);
+}
+
+void
+simulate_signal(int signal)
+{
+    data.last_signal_event->callback(signal, SUDO_PLUGIN_EV_SIGNAL,
+                                     data.last_signal_event->closure);
+}
+
+void
+simulate_readable()
+{
+    data.last_read_event->callback(12, SUDO_PLUGIN_EV_READ,
+                                   data.last_read_event->closure);
+}
+
+int
+check_example_events_timer(void)
+{
+    const char *errstr = NULL;  // TODO use and test this?
+
+    str_array_free(&data.plugin_options);
+    data.plugin_options = create_str_array(
+        3,
+        "ModulePath=" SRC_DIR "/example_events_timer.py",
+        "ClassName=EventsIOPlugin",
+        NULL
+    );
+
+    data.plugin_argc = 1;
+    str_array_free(&data.plugin_argv);
+    data.plugin_argv = create_str_array(3, "sleep", "20s", NULL);
+
+    python_io->event_alloc = _fake_event_alloc;
+
+    VERIFY_INT(python_io->open(SUDO_API_VERSION, fake_conversation, fake_printf, data.settings,
+                              data.user_info, data.command_info, data.plugin_argc, data.plugin_argv,
+                              data.user_env, data.plugin_options, &errstr), SUDO_RC_OK);
+
+    VERIFY_PTR(data.last_read_event, NULL);
+    VERIFY_PTR_NE(data.last_timeout_event, NULL);
+    VERIFY_PTR_NE(data.last_signal_event, NULL);
+
+    simulate_timeout();  // counter decreases a bit
+    simulate_timeout();
+    simulate_signal(SIGCONT); // counter resets
+    for (int i = 0; i < 11; ++i) {  // count down finishes
+        simulate_timeout();
+    }
+
+    python_io->close(0, 0);
+
+    VERIFY_STDOUT(expected_path("check_example_events_timer.stdout"));
+    VERIFY_STDERR(expected_path("check_example_events_timer.stderr"));
+
+    return true;
+}
+
+int
+check_example_events_socket(void)
+{
+    const char *errstr = NULL;
+
+    str_array_free(&data.plugin_options);
+    data.plugin_options = create_str_array(
+        3,
+        "ModulePath=" SRC_DIR "/example_events_socket.py",
+        "ClassName=SocketEventsIOPlugin",
+        NULL
+    );
+
+    data.plugin_argc = 1;
+    str_array_free(&data.plugin_argv);
+    data.plugin_argv = create_str_array(2, "bash", NULL);
+
+    python_io->event_alloc = _fake_event_alloc;
+
+    // verify socket does not exist
+    struct stat socket_stat;
+    VERIFY_INT(stat("/tmp/sudo_example.s", &socket_stat), -1);
+    VERIFY_INT(errno, ENOENT);
+
+    VERIFY_INT(python_io->open(SUDO_API_VERSION, fake_conversation, fake_printf, data.settings,
+                              data.user_info, data.command_info, data.plugin_argc, data.plugin_argv,
+                              data.user_env, data.plugin_options, &errstr), SUDO_RC_OK);
+
+    VERIFY_PTR_NE(data.last_read_event, NULL);
+    VERIFY_PTR(data.last_timeout_event, NULL);
+    VERIFY_PTR(data.last_signal_event, NULL);
+
+    if (system("socat -h &>/dev/null") == 0) {
+        VERIFY_INT(system("{ echo \"Hello!\" | socat - UNIX-CONNECT:/tmp/sudo_example.s; } &"), 0);
+        simulate_readable();
+        VERIFY_STDOUT(expected_path("check_example_events_socket.stdout"));
+    } else {
+        printf("Warning: skipping test using 'socat', because it failed to execute\n");
+    }
+
+    python_io->close(0, 0);
+
+    VERIFY_STDERR(expected_path("check_example_events_socket.stderr"));
+
+    // verify socket was removed
+    VERIFY_INT(stat("/tmp/sudo_example.s", &socket_stat), -1);
+    VERIFY_INT(errno, ENOENT);
+
+    return true;
+}
+
 int
 check_python_plugin_can_be_loaded(const char *python_plugin_path)
 {
@@ -924,6 +1168,9 @@ main(int argc, char *argv[])
     RUN_TEST(check_policy_plugin_callbacks_are_optional());
 
     RUN_TEST(check_python_plugins_do_not_affect_each_other());
+
+    RUN_TEST(check_example_events_timer());
+    RUN_TEST(check_example_events_socket());
 
     RUN_TEST(check_example_debugging("plugin@err"));
     RUN_TEST(check_example_debugging("plugin@info"));

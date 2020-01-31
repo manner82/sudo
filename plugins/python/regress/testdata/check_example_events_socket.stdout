@@ -1,0 +1,8 @@
+## event(id=1)->new()
+## event(id=1)->set(fd=set, events=2)
+## event(id=1)->add(timeout_sec=-1, timeout_nsec=-1)
+## event(id=1)->free()
+** Message received: Hello! **
+## event(id=2)->new()
+## event(id=2)->set(fd=set, events=2)
+## event(id=2)->add(timeout_sec=-1, timeout_nsec=-1)

@@ -45,6 +45,11 @@ extern struct TestData {
     char conv_str[MAX_OUTPUT];
     const char *conv_replies[8];
 
+    int event_id_seq;
+    struct TestPluginEvent *last_signal_event;
+    struct TestPluginEvent *last_read_event;
+    struct TestPluginEvent *last_timeout_event;
+
     // some example test data used by multiple test cases:
     char ** settings;
     char ** user_info;
