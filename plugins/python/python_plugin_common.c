@@ -30,6 +30,8 @@
 #include <limits.h>
 #include <string.h>
 
+static struct _inittab * python_inittab_copy = NULL;
+static size_t python_inittab_copy_len = 0;
 
 const char *
 _lookup_value(char * const keyvalues[], const char *key)
@@ -125,6 +127,32 @@ _python_plugin_new_interpreter(void)
     }
 
     return py_interpreter;
+}
+
+static void
+_save_inittab(void)
+{
+    free(python_inittab_copy);  // just to be sure (it is always NULL)
+
+    struct _inittab * tab = PyImport_Inittab;
+    for (python_inittab_copy_len = 0; tab[python_inittab_copy_len].name != NULL;
+         ++python_inittab_copy_len) {
+    }
+    ++python_inittab_copy_len;  // for the null mark
+
+    python_inittab_copy = malloc(sizeof(struct _inittab) * python_inittab_copy_len);
+    memcpy(python_inittab_copy, PyImport_Inittab, python_inittab_copy_len * sizeof(struct _inittab));
+}
+
+static void
+_restore_inittab(void)
+{
+    if (python_inittab_copy != NULL)
+        memcpy(PyImport_Inittab, python_inittab_copy, python_inittab_copy_len * sizeof(struct _inittab));
+
+    free(python_inittab_copy);
+    python_inittab_copy = NULL;
+    python_inittab_copy_len = 0;
 }
 
 void
@@ -311,6 +339,7 @@ _python_plugin_register_plugin_in_py_ctx(void)
         Py_IsolatedFlag = 1;
         Py_NoUserSiteDirectory = 1;
 
+        _save_inittab();
         PyImport_AppendInittab("sudo", sudo_module_init);
         Py_InitializeEx(0);
         py_ctx.py_main_interpreter = PyThreadState_Get();
@@ -579,6 +608,9 @@ python_plugin_unlink(void)
         if (Py_FinalizeEx() != 0) {
             sudo_debug_printf(SUDO_DEBUG_WARN, "Closing: failed to deinit python interpreter\n");
         }
+
+        // Restore inittab so "sudo" module does not remain there (as garbage)
+        _restore_inittab();
     }
     py_ctx_reset();
 }
