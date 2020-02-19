@@ -129,30 +129,39 @@ _python_plugin_new_interpreter(void)
     return py_interpreter;
 }
 
-static void
+static int
 _save_inittab(void)
 {
+    debug_decl(_save_inittab, PYTHON_DEBUG_INTERNAL);
     free(python_inittab_copy);  // just to be sure (it is always NULL)
 
-    struct _inittab * tab = PyImport_Inittab;
-    for (python_inittab_copy_len = 0; tab[python_inittab_copy_len].name != NULL;
+    for (python_inittab_copy_len = 0;
+         PyImport_Inittab[python_inittab_copy_len].name != NULL;
          ++python_inittab_copy_len) {
     }
     ++python_inittab_copy_len;  // for the null mark
 
     python_inittab_copy = malloc(sizeof(struct _inittab) * python_inittab_copy_len);
+    if (python_inittab_copy == NULL) {
+        debug_return_int(SUDO_RC_ERROR);
+    }
+
     memcpy(python_inittab_copy, PyImport_Inittab, python_inittab_copy_len * sizeof(struct _inittab));
+    debug_return_int(SUDO_RC_OK);
 }
 
 static void
 _restore_inittab(void)
 {
+    debug_decl(_restore_inittab, PYTHON_DEBUG_INTERNAL);
+
     if (python_inittab_copy != NULL)
         memcpy(PyImport_Inittab, python_inittab_copy, python_inittab_copy_len * sizeof(struct _inittab));
 
     free(python_inittab_copy);
     python_inittab_copy = NULL;
     python_inittab_copy_len = 0;
+    debug_return;
 }
 
 void
@@ -339,7 +348,9 @@ _python_plugin_register_plugin_in_py_ctx(void)
         Py_IsolatedFlag = 1;
         Py_NoUserSiteDirectory = 1;
 
-        _save_inittab();
+        if (_save_inittab() != SUDO_RC_OK)
+            return SUDO_RC_ERROR;
+
         PyImport_AppendInittab("sudo", sudo_module_init);
         Py_InitializeEx(0);
         py_ctx.py_main_interpreter = PyThreadState_Get();
