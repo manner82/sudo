@@ -520,6 +520,7 @@ check_plugin_unload(void)
     // You can call this test to avoid having a lot of subinterpreters
     // (each plugin->open starts one, and only plugin unlink closes)
     // It only verifies that python was shut down correctly.
+    VERIFY_TRUE(Py_IsInitialized());
     VERIFY_TRUE(_unlink_symbols());
     VERIFY_FALSE(Py_IsInitialized());  // python interpreter could be stopped
     return true;

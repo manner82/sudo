@@ -115,6 +115,7 @@ _import_module(const char *path)
 static PyThreadState *
 _python_plugin_new_interpreter(void)
 {
+    debug_decl(_python_plugin_new_interpreter, PYTHON_DEBUG_INTERNAL);
     if (py_ctx.interpreter_count >= INTERPRETER_MAX) {
         PyErr_Format(PyExc_Exception, "Too many interpreters");
         return NULL;
@@ -126,7 +127,7 @@ _python_plugin_new_interpreter(void)
         ++py_ctx.interpreter_count;
     }
 
-    return py_interpreter;
+    debug_return_ptr(py_interpreter);
 }
 
 static int
@@ -624,4 +625,5 @@ python_plugin_unlink(void)
         _restore_inittab();
     }
     py_ctx_reset();
+    debug_return;
 }
