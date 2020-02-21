@@ -1,0 +1,63 @@
+#! /bin/bash
+
+set -euo pipefail
+
+basedir=@plugindir@/python/aa
+
+if [ "$UID" != "0" ]; then
+  echo "Run me as root"
+  exit 1
+fi
+
+file=$1
+if [ "$file" == "" ]; then
+  echo "Specify an AAPlugin zip as first argument!"
+  echo "TODO document how to get that here."
+  exit 1
+fi
+
+cleanup() {
+  if [ -d "$basedir/_" ]; then
+    echo "Error occured, cleaning up..."
+    rm -rf "$basedir/_"
+    exit 1
+  fi
+}
+
+trap cleanup EXIT
+
+mkdir -p "$basedir/_"
+echo "Extracting..."
+unzip -q -d "$basedir/_" "$file"
+echo "Fixing access rights (if needed)..."
+chmod -R go-w "$basedir/_"
+
+plugin_name=$(sed -n -e "s|^name: *||p" "$basedir/_/MANIFEST")
+if [ -d "$basedir/$plugin_name" ]; then
+  rm -rf "$basedir/$plugin_name.backup" 
+  mv "$basedir/$plugin_name" "$basedir/$plugin_name.backup"
+  echo "Warning: previous installation was backed up to: '$basedir/$plugin_name.backup'"
+fi
+mv "$basedir/_" "$basedir/$plugin_name"
+echo "The AAPlugin was installed to: '$basedir/$plugin_name'"
+echo
+
+# sanity check
+if ! python3 -c "import safeguard" &>/dev/null; then
+  echo "Warning: oneidentity-safeguard-sessions-plugin-sdk might not be installed"
+  echo "  To install it, run 'pip3 install oneidentity-safeguard-sessions-plugin-sdk'"
+  echo
+fi
+if ! PYTHONPATH="$basedir" python3 -c "import $plugin_name" &>/dev/null; then
+  echo "Warning: $plugin_name seems not be able to get imported"
+  echo
+fi
+
+config_dest="/etc/sudo.aa.d/$plugin_name.conf"
+mkdir -p "/etc/sudo.aa.d"
+cp -f "$basedir/$plugin_name/default.cfg" "$config_dest"
+echo "To configure the plugin, modify: '$config_dest'"
+echo
+
+echo "To register the plugin to sudo, add the following line in sudo.conf:"
+echo "  Plugin python_approval python_plugin.so ModulePath=aa_plugin_wrapper.py AAPlugin=$plugin_name"

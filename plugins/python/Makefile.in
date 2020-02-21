@@ -131,10 +131,15 @@ LIBOBJDIR = $(top_builddir)/@ac_config_libobj_dir@/
 VERSION = @PACKAGE_VERSION@
 
 TEST_PROGS = check_python_examples
+PROGS = aaplugin/sudo-config-aa.sh
 
 CHECK_PYTHON_EXAMPLES_OBJS = check_python_examples.o iohelpers.o testhelpers.o pyhelpers.lo sudo_python_debug.lo
 
 all: python_plugin.la
+
+aaplugin/sudo-config-aa.sh:
+	cd $(top_builddir) && ./config.status --file plugins/python/aaplugin/sudo-config-aa.sh
+	chmod +x aaplugin/sudo-config-aa.sh
 
 depend:
 	$(scriptdir)/mkdep.pl --srcdir=$(abs_top_srcdir) \
@@ -169,12 +174,13 @@ python_plugin.la: $(OBJS) $(LT_LIBS) @LT_LDDEP@
 
 pre-install:
 
-install: install-plugin install-doc
+install: install-plugin install-doc install-binaries
 
 install-dirs:
-	$(SHELL) $(scriptdir)/mkinstalldirs $(DESTDIR)$(plugindir) $(DESTDIR)$(exampledir)
+	$(SHELL) $(scriptdir)/mkinstalldirs $(DESTDIR)$(plugindir)/python $(DESTDIR)$(exampledir) $(DESTDIR)$(bindir)
 
-install-binaries:
+install-binaries: install-dirs $(PROGS)
+	INSTALL_BACKUP='$(INSTALL_BACKUP)' $(LIBTOOL) $(LTFLAGS) --mode=install $(INSTALL) $(INSTALL_OWNER) -m 0744 aaplugin/sudo-config-aa.sh $(DESTDIR)$(bindir)/sudo-config-aa.sh
 
 install-includes:
 
