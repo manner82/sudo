@@ -16,3 +16,5 @@ SOURCES += $$system(find . -name '\\*.c') \
 OTHER_FILES += $$system(find . -name 'Makefile.in')
 
 PRECOMPILED_HEADER += config.h
+
+DEFINES += LOCALEDIR=\\\"/tmp\\\"
