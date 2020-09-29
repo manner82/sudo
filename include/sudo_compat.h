@@ -24,6 +24,8 @@
 #ifndef SUDO_COMPAT_H
 #define SUDO_COMPAT_H
 
+#include "config.h"
+
 #include <sys/types.h>	/* for gid_t, mode_t, size_t, ssize_t, uid_t */
 #include <stdio.h>
 #if !defined(HAVE_VSNPRINTF) || !defined(HAVE_VASPRINTF) || \
