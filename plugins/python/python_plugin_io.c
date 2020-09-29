@@ -229,6 +229,27 @@ python_plugin_io_log_suspend(struct IOPluginContext *io_ctx, int signo, const ch
     debug_return_int(rc);
 }
 
+int
+python_plugin_io_log_subcmd(struct IOPluginContext *io_ctx, int argc, char * const argv[], char * const env[], const char **errstr)
+{
+    debug_decl(python_plugin_io_log_subcmd, PYTHON_DEBUG_CALLBACKS);
+    struct PluginContext *plugin_ctx = BASE_CTX(io_ctx);
+    PyThreadState_Swap(plugin_ctx->py_interpreter);
+
+    PyObject *py_argv = py_str_array_to_tuple_with_count(argc, argv);
+    PyObject *py_env = py_str_array_to_tuple(env);
+
+    int rc = python_plugin_api_rc_call(plugin_ctx, CALLBACK_PYNAME(log_subcmd),
+                                       Py_BuildValue("(OO)", py_argv, py_env));
+
+    CALLBACK_SET_ERROR(plugin_ctx, errstr);
+
+    Py_XDECREF(py_argv);
+    Py_XDECREF(py_env);
+
+    debug_return_int(rc);
+}
+
 // generate symbols for loading multiple io plugins:
 sudo_dso_public struct io_plugin python_io;
 #define IO_SYMBOL_NAME(symbol) symbol
