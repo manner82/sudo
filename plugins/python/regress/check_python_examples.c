@@ -330,6 +330,45 @@ check_example_io_plugin_command_log_multiple(void)
 }
 
 int
+check_example_io_plugin_subcommand_log(void)
+{
+    const char *errstr = NULL;
+    create_io_plugin_options(data.tmp_dir);
+
+    str_array_free(&data.plugin_argv);
+    data.plugin_argc = 2;
+    data.plugin_argv = create_str_array(3, "/bin/bash", "something_doer.sh", NULL);
+
+    str_array_free(&data.command_info);
+    data.command_info = create_str_array(3, "command=/bin/bash", "runas_uid=0", NULL);
+
+    VERIFY_INT(python_io->open(SUDO_API_VERSION, fake_conversation, fake_printf, data.settings,
+                              data.user_info, data.command_info, data.plugin_argc, data.plugin_argv,
+                              data.user_env, data.plugin_options, &errstr), SUDO_RC_OK);
+    VERIFY_PTR(errstr, NULL);
+
+    char **argv = create_str_array(1, "whoami");
+    char **env = create_str_array(3, "ENV1=something", "ENV2=other", NULL);
+    VERIFY_INT(python_io->log_subcmd(1, argv, env, &errstr), SUDO_RC_OK);
+    VERIFY_PTR(errstr, NULL);
+    str_array_free(&argv);
+
+    argv = create_str_array(2, "passwd", "root");
+    VERIFY_INT(python_io->log_subcmd(2, argv, env, &errstr), SUDO_RC_REJECT);
+    VERIFY_STR(errstr, "You are not allowed to change password");
+
+    str_array_free(&argv);
+    str_array_free(&env);
+
+    python_io->close(0, 0);
+
+    VERIFY_FILE("sudo.log", expected_path("check_example_io_plugin_subcommand_log.stored"));
+
+    return true;
+
+}
+
+int
 check_example_io_plugin_failed_to_start_command(void)
 {
     const char *errstr = NULL;
@@ -1523,6 +1562,7 @@ main(int argc, char *argv[])
     RUN_TEST(check_example_io_plugin_version_display(false));
     RUN_TEST(check_example_io_plugin_command_log());
     RUN_TEST(check_example_io_plugin_command_log_multiple());
+    RUN_TEST(check_example_io_plugin_subcommand_log());
     RUN_TEST(check_example_io_plugin_failed_to_start_command());
     RUN_TEST(check_example_io_plugin_fails_with_python_backtrace());
     RUN_TEST(check_io_plugin_callbacks_are_optional());

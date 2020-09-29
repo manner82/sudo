@@ -1,0 +1,9 @@
+ -- Plugin STARTED --
+EXEC /bin/bash something_doer.sh
+EXEC info [
+    "command=/bin/bash",
+    "runas_uid=0"
+]
+SUBCMD command='('whoami',)' env='('ENV1=something', 'ENV2=other')'
+CLOSE Command returned 0
+ -- Plugin DESTROYED --

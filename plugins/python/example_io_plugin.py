@@ -108,6 +108,12 @@ class SudoIOPlugin(sudo.Plugin):
 
         self._log("SUSPEND", signal_description)
 
+    def log_subcmd(self, argv: tuple, env: tuple) -> int:
+        if (path.basename(argv[0]) == "passwd"):
+            raise sudo.PluginReject("You are not allowed to change password")
+
+        self._log("SUBCMD", "command='{}' env='{}'".format(argv, env))
+
     def show_version(self, is_verbose: int) -> int:
         sudo.log_info("Python Example IO Plugin version: {}".format(VERSION))
         if is_verbose:
