@@ -13,7 +13,8 @@ YACCSOURCES += plugins/sudoers/getdate.y plugins/sudoers/gram.y
 
 SOURCES += $$system(find . -name '\\*.c') \
 
-OTHER_FILES += $$system(find . -name 'Makefile.in')
+OTHER_FILES += $$system(find . -name '\\*.inc') \
+               $$system(find . -name '\\*.in') \
 
 PRECOMPILED_HEADER += config.h
 
