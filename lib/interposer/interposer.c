@@ -4,7 +4,7 @@
 #include <dlfcn.h>
 #include <stdio.h>
 
-__attribute__((__visibility__("default"))) int
+int
 execve(const char *command, char * const argv[], char * const envp[])
 {
     int (*execve_fn)(const char *, char *const *, char *const *);
@@ -15,7 +15,7 @@ execve(const char *command, char * const argv[], char * const envp[])
         return -1;              /* should not happen */
     }
 
-    printf("[INTERPOSER] -> running command: %s\n", command);
+    fprintf(stderr, "[INTERPOSER] -> running command: %s\n", command);
 
     /* Execute the command using the "real" execve function. */
     return (*execve_fn)(command, argv, envp);
