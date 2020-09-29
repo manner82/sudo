@@ -1,10 +1,12 @@
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <unistd.h>
 #include <dlfcn.h>
 #include <stdio.h>
 
-int
+sudo_dso_public int
 execve(const char *command, char * const argv[], char * const envp[])
 {
     int (*execve_fn)(const char *, char *const *, char *const *);
