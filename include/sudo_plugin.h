@@ -21,7 +21,7 @@
 
 /* API version major/minor */
 #define SUDO_API_VERSION_MAJOR 1
-#define SUDO_API_VERSION_MINOR 16
+#define SUDO_API_VERSION_MINOR 17
 #define SUDO_API_MKVERSION(x, y) (((x) << 16) | (y))
 #define SUDO_API_VERSION SUDO_API_MKVERSION(SUDO_API_VERSION_MAJOR, SUDO_API_VERSION_MINOR)
 
@@ -209,6 +209,8 @@ struct io_plugin {
 	const char **errstr);
     int (*log_suspend)(int signo, const char **errstr);
     struct sudo_plugin_event * (*event_alloc)(void);
+    int (*log_subcmd)(int argc, char * const argv[], char * const env[],
+                          const char **errstr);
 };
 
 /* Differ audit plugin close status types. */
