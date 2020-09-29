@@ -36,6 +36,9 @@
 #include "sudo_exec.h"
 
 #ifdef RTLD_PRELOAD_VAR
+
+extern char **environ;
+
 /*
  * Add a DSO file to LD_PRELOAD or the system equivalent.
  */
@@ -193,7 +196,10 @@ sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noe
 	    fexecve(fd, argv, envp);
     else
 #endif
+    {
+        envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
 	    execve(path, argv, envp);
+    }
     if (fd == -1 && errno == ENOEXEC) {
 	int argc;
 	char **nargv;
