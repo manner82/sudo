@@ -53,6 +53,8 @@ lib/util/[a-z0-9_]*_test
 lib/util/regress/**/*.out
 lib/util/regress/**/*.err
 
+lib/interposer/interposer.exp
+
 logsrvd/sudo_logsrvd
 logsrvd/sudo_sendlog
 
