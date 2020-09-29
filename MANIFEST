@@ -123,6 +123,9 @@ lib/logsrv/Makefile.in
 lib/logsrv/log_server.pb-c.c
 lib/logsrv/log_server.proto
 lib/logsrv/protobuf-c.c
+lib/interposer/Makefile.in
+lib/interposer/interposer.c
+lib/interposer/interposer.exp.in
 lib/util/Makefile.in
 lib/util/aix.c
 lib/util/arc4random.c
