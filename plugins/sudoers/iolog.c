@@ -61,6 +61,8 @@ static struct sudoers_io_operations {
 	struct timespec *delay, const char **errstr);
     int (*suspend)(const char *signame, struct timespec *delay,
 	const char **errstr);
+    int (*subcmd)(int argc, char * const argv[], char * const env[],
+	const char **errstr);
 } io_operations;
 
 #ifdef SUDOERS_IOLOG_CLIENT
@@ -1220,6 +1222,75 @@ bad:
     debug_return_int(ret);
 }
 
+static int
+sudoers_io_subcmd_local(int argc, char * const argv[], char * const env[],
+                        const char **errstr)
+{
+    (void) errstr;
+    (void) env;
+    printf("%s: argc=%d argv[0]='%s'\n", __PRETTY_FUNCTION__, argc, argv[0]);
+    return 1;
+}
+
+#ifdef SUDOERS_IOLOG_CLIENT
+static int
+sudoers_io_subcmd_remote(int argc, char * const argv[], char * const env[],
+                         const char **errstr)
+{
+    (void) errstr;
+    (void) env;
+    printf("%s: argc=%d argv[0]='%s'\n", __PRETTY_FUNCTION__, argc, argv[0]);
+    return 1;
+}
+#endif // SUDOERS_IOLOG_CLIENT
+
+static int
+sudoers_io_subcmd(int argc, char * const argv[], char * const env[],
+                      const char **errstr)
+{
+    struct timespec now, delay;
+    const char *ioerror = NULL;
+    int ret = -1;
+    debug_decl(sudoers_io_log_subcmd, SUDOERS_DEBUG_PLUGIN);
+
+    if (sudo_gettime_awake(&now) == -1) {
+	sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_ERRNO,
+	    "%s: unable to get time of day", __func__);
+	ioerror = N_("unable to read the clock");
+	goto bad;
+    }
+    sudo_timespecsub(&now, &last_time, &delay);
+
+    ret = io_operations.subcmd(argc, argv, env, &ioerror);
+
+    last_time.tv_sec = now.tv_sec;
+    last_time.tv_nsec = now.tv_nsec;
+
+bad:
+    if (ret == -1) {
+	if (ioerror != NULL && !warned) {
+	    char *cp;
+
+	    if (asprintf(&cp, N_("unable to write to I/O log file: %s"),
+		    ioerror) != -1) {
+		*errstr = cp;
+	    }
+	    if (!warned) {
+		/* Only warn about I/O log file errors once. */
+		log_warningx(SLOG_SEND_MAIL,
+		    N_("unable to write to I/O log file: %s"), ioerror);
+		warned = true;
+	    }
+	}
+
+	/* Ignore errors if they occur if the policy says so. */
+	if (iolog_details.ignore_iolog_errors)
+	    ret = 1;
+    }
+
+    debug_return_int(ret);
+}
+
 /*
  * Fill in the contents of io_operations, either local or remote.
  */
@@ -1235,6 +1306,7 @@ sudoers_io_setops(void)
 	io_operations.log = sudoers_io_log_remote;
 	io_operations.change_winsize = sudoers_io_change_winsize_remote;
 	io_operations.suspend = sudoers_io_suspend_remote;
+	io_operations.subcmd = sudoers_io_subcmd_remote;
     } else
 #endif /* SUDOERS_IOLOG_CLIENT */
     {
@@ -1243,6 +1315,7 @@ sudoers_io_setops(void)
 	io_operations.log = sudoers_io_log_local;
 	io_operations.change_winsize = sudoers_io_change_winsize_local;
 	io_operations.suspend = sudoers_io_suspend_local;
+	io_operations.subcmd = sudoers_io_subcmd_local;
     }
 
     debug_return;
@@ -1263,5 +1336,6 @@ sudo_dso_public struct io_plugin sudoers_io = {
     NULL, /* deregister_hooks */
     sudoers_io_change_winsize,
     sudoers_io_suspend,
-    NULL /* event_alloc() filled in by sudo */
+    NULL, /* event_alloc() filled in by sudo */
+    sudoers_io_subcmd,
 };
