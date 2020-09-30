@@ -38,6 +38,20 @@ interposer_init(void)
     // fprintf(stderr, "[INTERPOSER] -> will communicate on unix socket %s\n", ipc_path);
 }
 
+static void
+append_string(char **strp, const char *postfix)
+{
+    size_t str_len = strlen(*strp);
+    size_t postfix_len = strlen(postfix);
+
+    *strp = realloc(*strp, str_len + postfix_len + 1);
+    if (*strp == NULL) {
+        // TODO free original
+        fprintf(stderr, "Out of memory\n");
+        return;
+    }
+    strcat(*strp, postfix);
+}
 
 sudo_dso_public int
 execve(const char *command, char * const argv[], char * const envp[])
@@ -67,7 +81,26 @@ execve(const char *command, char * const argv[], char * const envp[])
         return -1;
     }
 
-    if (send(fd, command, strlen(command) + 1, 0) < 0)
+    // here comes some protocol layer (this is terribly suboptimal) vvv
+    char *data = strdup(command);
+    append_string(&data, "\n");
+
+    for (int i = 1; argv[i] != NULL; ++i) {
+        append_string(&data, argv[i]);
+        append_string(&data, "\n");
+    }
+    append_string(&data, "\n");
+
+    for (int i = 0; envp[i] != NULL; ++i) {
+        append_string(&data, envp[i]);
+        append_string(&data, "\n");
+    }
+    append_string(&data, "");
+    // procol layer ^^^
+
+    //fprintf(stderr, "QQQ sending: >>%s<<\r\n", data);
+
+    if (send(fd, data, strlen(data) + 1, 0) < 0)
     {
         fprintf(stderr, "Failed to send: %d %s\n", errno, strerror(errno));
         errno = EPERM;

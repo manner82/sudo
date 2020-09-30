@@ -1336,14 +1336,42 @@ free_exec_closure_pty(struct exec_closure_pty *ec)
     debug_return;
 }
 
-static void
-interposer_callback(int fd, int what, void *closure)
+static char **read_array(FILE *fp)
 {
+    int result_len = 2;
+    char **result = malloc(result_len * sizeof(char *)); // TODO handle OOM
+
+    char line[8096];
+    int line_num = 0;
+
+    result[0] = NULL;
+    while (fgets(line, sizeof(line), fp) && line[0] != '\n' && line[0] != '\0') {
+        if (line_num + 2 >= result_len) {
+            result = reallocarray(result, result_len * 2, sizeof(char*)); // TODO handle OOM
+            result_len *= 2;
+        }
+        result[line_num] = strdup(line); // TODO handle OOM
+        result[line_num][strlen(result[line_num]) - 1] = '\0';
+        ++line_num;
+        result[line_num] = NULL;
+    }
+
+    return result;
+}
+
+static void
+subcommand_callback(int fd, int what, void *closure)
+{
+    (void) what;
+    (void) closure;
+
     int connfd = accept(fd, NULL, NULL);
     if (connfd < 0) {
         fprintf(stderr, "Failed to accept interposer connection: %d %s\r\n", errno, strerror(errno));
         return;
     }
+
+#if 0
     char data[1024];  // TODO signal can interrupt etc  -> move it to new event?
     int count = recv(connfd, data, sizeof(data), 0);
     if (count < 0) {
@@ -1352,7 +1380,23 @@ interposer_callback(int fd, int what, void *closure)
         return;
     }
     fprintf(stderr, "Received from interposer: %s\r\n", data);
-    close(connfd);
+#endif
+
+    // protocol layer   vvv
+
+    FILE *connfp = fdopen(connfd, "r");  // TODO handle error
+
+    char **argv = read_array(connfp);  // TODO safety for too much read
+    char **env = read_array(connfp);
+    if (argv == NULL || env == NULL) {
+        fprintf(stderr, "Failed to read interposer connection: %d %s\r\n", errno, strerror(errno));
+        fclose(connfp);
+        return;
+    }
+
+    // protocol layer   ^^^
+
+    fclose(connfp);
 
 
     struct plugin_container *plugin;
@@ -1361,10 +1405,7 @@ interposer_callback(int fd, int what, void *closure)
         if (plugin->u.io->log_subcmd != NULL)
         {
             const char *errstr = NULL;
-            int argc = 1;
-            char* argv[1] = {data};
-            char* env[1] = {NULL};
-            int rc = plugin->u.io->log_subcmd(argc, argv, env, &errstr);
+            int rc = plugin->u.io->log_subcmd(argv, env, &errstr);
             if (rc == 1) {
                 fprintf(stderr, "Sudo plugin '%s' accepted\r\n", (const char*)plugin->name);
             } else if (rc == 0) {
@@ -1683,7 +1724,7 @@ exec_pty(struct command_details *details, struct command_status *cstat)
     add_io_events(ec.evbase);
 
     struct sudo_event *exec_subcmd =
-            sudo_ev_alloc(ipc_fd, SUDO_EV_READ|SUDO_EV_PERSIST, interposer_callback, NULL);
+            sudo_ev_alloc(ipc_fd, SUDO_EV_READ|SUDO_EV_PERSIST, subcommand_callback, NULL);
     if (exec_subcmd == NULL) {
         fprintf(stderr, "Failed to allocate event\n");
         debug_return_bool(true);
