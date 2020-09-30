@@ -1366,11 +1366,12 @@ interposer_callback(int fd, int what, void *closure)
             char* env[1] = {NULL};
             int rc = plugin->u.io->log_subcmd(argc, argv, env, &errstr);
             if (rc == 1) {
-                fprintf(stderr, "Python plugin '%s' accepted\r\n", (const char*)plugin->name);
+                fprintf(stderr, "Sudo plugin '%s' accepted\r\n", (const char*)plugin->name);
             } else if (rc == 0) {
-                fprintf(stderr, "Python plugin '%s' rejected\r\n", (const char*)plugin->name);
+                fprintf(stderr, "Sudo plugin '%s' rejected: '%s'\r\n", (const char*)plugin->name, errstr);
                 // TODO sudo_ev_loopbreak()
             } else if (rc < 0) {
+                fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
                 // TODO sudo_ev_loopbreak()
             }
         }
