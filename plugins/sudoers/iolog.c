@@ -1228,7 +1228,7 @@ sudoers_io_subcmd_local(int argc, char * const argv[], char * const env[],
 {
     (void) errstr;
     (void) env;
-    printf("%s: argc=%d argv[0]='%s'\n", __PRETTY_FUNCTION__, argc, argv[0]);
+    printf("%s: argc=%d argv[0]='%s'\r\n", __PRETTY_FUNCTION__, argc, argv[0]);
     return 1;
 }
 

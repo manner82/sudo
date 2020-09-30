@@ -1341,22 +1341,41 @@ interposer_callback(int fd, int what, void *closure)
 {
     int connfd = accept(fd, NULL, NULL);
     if (connfd < 0) {
-        fprintf(stderr, "Failed to accept interposer connection: %d %s", errno, strerror(errno));
+        fprintf(stderr, "Failed to accept interposer connection: %d %s\r\n", errno, strerror(errno));
         return;
     }
-    char data[1024];  // TODO signal can interrupt etc
+    char data[1024];  // TODO signal can interrupt etc  -> move it to new event?
     int count = recv(connfd, data, sizeof(data), 0);
     if (count < 0) {
-        fprintf(stderr, "Failed to read interposer connection: %d %s", errno, strerror(errno));
+        fprintf(stderr, "Failed to read interposer connection: %d %s\r\n", errno, strerror(errno));
         close(connfd);
         return;
     }
     fprintf(stderr, "Received from interposer: %s\r\n", data);
     close(connfd);
-    /*
-    if (sudo_ev_add(ec.evbase, exec_subcmd, NULL, false) == -1)
-        debug_return_int(-1);
-     */
+
+
+    struct plugin_container *plugin;
+    TAILQ_FOREACH(plugin, &io_plugins, entries)
+    {
+        if (plugin->u.io->log_subcmd != NULL)
+        {
+            const char *errstr = NULL;
+            int argc = 1;
+            char* argv[1] = {data};
+            char* env[1] = {NULL};
+            int rc = plugin->u.io->log_subcmd(argc, argv, env, &errstr);
+            if (rc == 1) {
+                fprintf(stderr, "Python plugin '%s' accepted\r\n", (const char*)plugin->name);
+            } else if (rc == 0) {
+                fprintf(stderr, "Python plugin '%s' rejected\r\n", (const char*)plugin->name);
+                // TODO sudo_ev_loopbreak()
+            } else if (rc < 0) {
+                // TODO sudo_ev_loopbreak()
+            }
+        }
+    }
+
     // TODO sudo_ev_free(exec_subcmd);
 
 }
