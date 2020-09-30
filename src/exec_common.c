@@ -191,15 +191,23 @@ sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noe
     if (noexec)
 	envp = disable_execute(envp, sudo_conf_noexec_path());
 
+    envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
+
+    // TODO search and replace
+    int ipc_fd = 333;
+    size_t env_size = 0;
+    while (envp[env_size] != NULL)
+        ++env_size;
+    envp = reallocarray(envp, env_size + 2, sizeof(*envp));
+    asprintf(&envp[env_size], "SUDO_IPC_FD=%d", ipc_fd);
+    envp[env_size + 1] = NULL;
+
+    execve(path, argv, envp);
+
 #ifdef HAVE_FEXECVE
     if (fd != -1)
-	    fexecve(fd, argv, envp);
-    else
+	fexecve(fd, argv, envp);
 #endif
-    {
-        envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
-	    execve(path, argv, envp);
-    }
     if (fd == -1 && errno == ENOEXEC) {
 	int argc;
 	char **nargv;
