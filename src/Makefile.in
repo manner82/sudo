@@ -123,7 +123,7 @@ SHELL = @SHELL@
 
 PROGS = @PROGS@
 
-OBJS = conversation.o copy_file.o env_hooks.o exec.o exec_common.o \
+OBJS = interposer_ipc.o conversation.o copy_file.o env_hooks.o exec.o exec_common.o \
        exec_monitor.o exec_nopty.o exec_pty.o get_pty.o hooks.o \
        limits.o load_plugins.o net_ifs.o parse_args.o preserve_fds.o \
        signal.o sudo.o sudo_edit.o tcsetpgrp_nobg.o tgetpass.o \
@@ -397,20 +397,22 @@ exec.i: $(srcdir)/exec.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
 exec.plog: exec.i
 	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/exec.c --i-file $< --output-file $@
 exec_common.o: $(srcdir)/exec_common.c $(incdir)/compat/stdbool.h \
-               $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
-               $(incdir)/sudo_debug.h $(incdir)/sudo_event.h \
-               $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
-               $(incdir)/sudo_plugin.h $(incdir)/sudo_queue.h \
-               $(incdir)/sudo_util.h $(srcdir)/sudo.h $(srcdir)/sudo_exec.h \
-               $(top_builddir)/config.h $(top_builddir)/pathnames.h
+               $(incdir)/interposer_ipc.h $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_conf.h $(incdir)/sudo_debug.h \
+               $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(srcdir)/sudo.h \
+               $(srcdir)/sudo_exec.h $(top_builddir)/config.h \
+               $(top_builddir)/pathnames.h
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/exec_common.c
 exec_common.i: $(srcdir)/exec_common.c $(incdir)/compat/stdbool.h \
-               $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
-               $(incdir)/sudo_debug.h $(incdir)/sudo_event.h \
-               $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
-               $(incdir)/sudo_plugin.h $(incdir)/sudo_queue.h \
-               $(incdir)/sudo_util.h $(srcdir)/sudo.h $(srcdir)/sudo_exec.h \
-               $(top_builddir)/config.h $(top_builddir)/pathnames.h
+               $(incdir)/interposer_ipc.h $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_conf.h $(incdir)/sudo_debug.h \
+               $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(srcdir)/sudo.h \
+               $(srcdir)/sudo_exec.h $(top_builddir)/config.h \
+               $(top_builddir)/pathnames.h
 	$(CC) -E -o $@ $(CPPFLAGS) $<
 exec_common.plog: exec_common.i
 	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/exec_common.c --i-file $< --output-file $@
@@ -508,6 +510,18 @@ hooks.i: $(srcdir)/hooks.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
 	$(CC) -E -o $@ $(CPPFLAGS) $<
 hooks.plog: hooks.i
 	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/hooks.c --i-file $< --output-file $@
+interposer_ipc.o: $(srcdir)/interposer_ipc.c $(incdir)/compat/stdbool.h \
+                  $(incdir)/interposer_ipc.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h \
+                  $(top_builddir)/config.h
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/interposer_ipc.c
+interposer_ipc.i: $(srcdir)/interposer_ipc.c $(incdir)/compat/stdbool.h \
+                  $(incdir)/interposer_ipc.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h \
+                  $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+interposer_ipc.plog: interposer_ipc.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/interposer_ipc.c --i-file $< --output-file $@
 limits.o: $(srcdir)/limits.c $(incdir)/compat/stdbool.h \
           $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h $(incdir)/sudo_debug.h \
           $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \

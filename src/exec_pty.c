@@ -41,6 +41,8 @@
 #include "sudo_exec.h"
 #include "sudo_plugin.h"
 #include "sudo_plugin_int.h"
+#include "interposer_ipc.h"
+
 
 /* Evaluates to true if the event has /dev/tty as its fd. */
 #define USERTTY_EVENT(_ev)	(sudo_ev_get_fd((_ev)) == io_fds[SFD_USERTTY])
@@ -1334,6 +1336,32 @@ free_exec_closure_pty(struct exec_closure_pty *ec)
     debug_return;
 }
 
+static void
+interposer_callback(int fd, int what, void *closure)
+{
+    int connfd = accept(fd, NULL, NULL);
+    if (connfd < 0) {
+        fprintf(stderr, "Failed to accept interposer connection: %d %s", errno, strerror(errno));
+        return;
+    }
+    char data[1024];  // TODO signal can interrupt etc
+    int count = recv(connfd, data, sizeof(data), 0);
+    if (count < 0) {
+        fprintf(stderr, "Failed to read interposer connection: %d %s", errno, strerror(errno));
+        close(connfd);
+        return;
+    }
+    fprintf(stderr, "Received from interposer: %s\r\n", data);
+    close(connfd);
+    /*
+    if (sudo_ev_add(ec.evbase, exec_subcmd, NULL, false) == -1)
+        debug_return_int(-1);
+     */
+    // TODO sudo_ev_free(exec_subcmd);
+
+}
+
+
 /*
  * Execute a command in a pty, potentially with I/O logging, and
  * wait for it to finish.
@@ -1538,6 +1566,12 @@ exec_pty(struct command_details *details, struct command_status *cstat)
 	debug_return_int(true);
     }
 
+    int ipc_fd = interposer_init_socket();
+    if (ipc_fd < 0) {
+        fprintf(stderr, "Failed to create IPC socket\n");
+        debug_return_bool(false);
+    }
+
     ec.monitor_pid = sudo_debug_fork();
     switch (ec.monitor_pid) {
     case -1:
@@ -1627,6 +1661,19 @@ exec_pty(struct command_details *details, struct command_status *cstat)
      * Try to recover on ENXIO, it means the tty was revoked.
      */
     add_io_events(ec.evbase);
+
+    struct sudo_event *exec_subcmd =
+            sudo_ev_alloc(ipc_fd, SUDO_EV_READ|SUDO_EV_PERSIST, interposer_callback, NULL);
+    if (exec_subcmd == NULL) {
+        fprintf(stderr, "Failed to allocate event\n");
+        debug_return_bool(true);
+    }
+
+    if (sudo_ev_add(ec.evbase, exec_subcmd, NULL, false) == -1) {
+        fprintf(stderr, "Failed to register event\n");
+        debug_return_bool(true);
+    }
+
     do {
 	if (sudo_ev_dispatch(ec.evbase) == -1)
 	    sudo_warn("%s", U_("error in event loop"));

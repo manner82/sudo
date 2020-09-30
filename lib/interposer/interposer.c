@@ -10,38 +10,72 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
 
-static int ipc_fd = -1;
+#include "config.h"
+#include "sudo_compat.h"
+#include "sudo_debug.h"
+
+
+static char *ipc_path = NULL;
 
 
 __attribute__((constructor)) void
 interposer_init(void)
 {
-    const char *ipc_rc_str = getenv("SUDO_IPC_FD");
-    if (ipc_rc_str == NULL) {
-        fprintf(stderr, "Failed to get SUDO_IPC_FD\n");
+    ipc_path = getenv("SUDO_IPC_PATH");
+    if (ipc_path == NULL || *ipc_path == '\0') {
+        fprintf(stderr, "Failed to get SUDO_IPC_PATH\n");
+        exit(129); // TODO
+    }
+    ipc_path = strdup(ipc_path);
+    if (ipc_path == NULL) {
+        fprintf(stderr, "Failed to allocate memory\n");
         exit(129); // TODO
     }
 
-    char *end = NULL;
-    ipc_fd = strtol(ipc_rc_str, &end, 10);
-    if (end == NULL || *end != '\0') {
-        fprintf(stderr, "Failed to init: SUDO_IPC_FD contained invalid value '%s'\n", ipc_rc_str);
-        exit(129); // TODO
-    }
-
-    fprintf(stderr, "[INTERPOSER] -> will communicate on descriptor %d\n", ipc_fd);
+    // fprintf(stderr, "[INTERPOSER] -> will communicate on unix socket %s\n", ipc_path);
 }
 
 
 sudo_dso_public int
 execve(const char *command, char * const argv[], char * const envp[])
 {
-    if (ipc_fd < 0) {
-        fprintf(stderr, "Failed to initialize sudo interposer\n"); //
+    if (ipc_path == NULL) {
+        fprintf(stderr, "Failed to initialize sudo interposer\n");
         errno = EPERM;
         return -1;
     }
+
+    // -- communication vvv
+    int fd = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (fd  < 0) {
+        fprintf(stderr, "Failed to create socket: %d %s\n", errno, strerror(errno));
+        errno = EPERM;
+        return -1;
+    }
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strlcpy(addr.sun_path, ipc_path, sizeof(addr.sun_path));
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+    {
+        fprintf(stderr, "Failed to connect: %d %s\n", errno, strerror(errno));
+        errno = EPERM;
+        return -1;
+    }
+
+    if (send(fd, command, strlen(command) + 1, 0) < 0)
+    {
+        fprintf(stderr, "Failed to send: %d %s\n", errno, strerror(errno));
+        errno = EPERM;
+        return -1;
+    }
+    close(fd);
+
+    // -- communication ^^^
 
     int (*execve_fn)(const char *, char *const *, char *const *);
 

@@ -23,7 +23,11 @@
 
 #include <config.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <stdio.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -34,6 +38,8 @@
 
 #include "sudo.h"
 #include "sudo_exec.h"
+
+#include "interposer_ipc.h"
 
 #ifdef RTLD_PRELOAD_VAR
 
@@ -193,13 +199,17 @@ sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noe
 
     envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
 
-    // TODO search and replace
-    int ipc_fd = 333;
     size_t env_size = 0;
     while (envp[env_size] != NULL)
         ++env_size;
     envp = reallocarray(envp, env_size + 2, sizeof(*envp));
-    asprintf(&envp[env_size], "SUDO_IPC_FD=%d", ipc_fd);
+    const char *ipc_path = interposer_get_ipc_path();
+    if (ipc_path == NULL) {
+        fprintf(stderr, "No IPC path\n");
+        errno = ENOENT;
+        debug_return_int(-1);
+    }
+    asprintf(&envp[env_size], "SUDO_IPC_PATH=%s", ipc_path);
     envp[env_size + 1] = NULL;
 
     execve(path, argv, envp);
