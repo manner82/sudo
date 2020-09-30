@@ -61,7 +61,7 @@ static struct sudoers_io_operations {
 	struct timespec *delay, const char **errstr);
     int (*suspend)(const char *signame, struct timespec *delay,
 	const char **errstr);
-    int (*subcmd)(int argc, char * const argv[], char * const env[],
+    int (*subcmd)(char * const argv[], char * const env[],
 	const char **errstr);
 } io_operations;
 
@@ -1223,30 +1223,41 @@ bad:
 }
 
 static int
-sudoers_io_subcmd_local(int argc, char * const argv[], char * const env[],
+sudoers_io_subcmd_local(char * const argv[], char * const env[],
                         const char **errstr)
 {
     (void) errstr;
-    (void) env;
-    printf("%s: argc=%d argv[0]='%s'\r\n", __PRETTY_FUNCTION__, argc, argv[0]);
+
+    fprintf(stderr, "%s: argv: ", __PRETTY_FUNCTION__);
+    for (int i = 0; argv[i] != NULL; ++i)
+        fprintf(stderr, "%s ", argv[i]);
+    fprintf(stderr, "\r\n");
+
+#if 0
+    fprintf(stderr, "%s: env: ", __PRETTY_FUNCTION__);
+    for (int i = 0; env[i] != NULL; ++i)
+        fprintf(stderr, "%s ", env[i]);
+    fprintf(stderr, "\r\n");
+#endif
+
     return 1;
 }
 
 #ifdef SUDOERS_IOLOG_CLIENT
 static int
-sudoers_io_subcmd_remote(int argc, char * const argv[], char * const env[],
+sudoers_io_subcmd_remote(char * const argv[], char * const env[],
                          const char **errstr)
 {
     (void) errstr;
     (void) env;
-    printf("%s: argc=%d argv[0]='%s'\n", __PRETTY_FUNCTION__, argc, argv[0]);
+    printf("%s: argv[0]='%s'\n", __PRETTY_FUNCTION__, argv[0]);
     return 1;
 }
 #endif // SUDOERS_IOLOG_CLIENT
 
 static int
-sudoers_io_subcmd(int argc, char * const argv[], char * const env[],
-                      const char **errstr)
+sudoers_io_subcmd(char * const argv[], char * const env[],
+                  const char **errstr)
 {
     struct timespec now, delay;
     const char *ioerror = NULL;
@@ -1261,7 +1272,7 @@ sudoers_io_subcmd(int argc, char * const argv[], char * const env[],
     }
     sudo_timespecsub(&now, &last_time, &delay);
 
-    ret = io_operations.subcmd(argc, argv, env, &ioerror);
+    ret = io_operations.subcmd(argv, env, &ioerror);
 
     last_time.tv_sec = now.tv_sec;
     last_time.tv_nsec = now.tv_nsec;

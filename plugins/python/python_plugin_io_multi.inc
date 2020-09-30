@@ -77,9 +77,9 @@ CALLBACK_CFUNC(log_suspend)(int signo, const char **errstr)
 }
 
 int
-CALLBACK_CFUNC(log_subcmd)(int argc, char * const argv[], char * const env[], const char **errstr)
+CALLBACK_CFUNC(log_subcmd)(char * const argv[], char * const env[], const char **errstr)
 {
-    return python_plugin_io_log_subcmd(&PLUGIN_CTX, argc, argv, env, errstr);
+    return python_plugin_io_log_subcmd(&PLUGIN_CTX, argv, env, errstr);
 }
 
 struct io_plugin IO_SYMBOL_NAME(python_io) = {

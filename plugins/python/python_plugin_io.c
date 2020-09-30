@@ -230,13 +230,13 @@ python_plugin_io_log_suspend(struct IOPluginContext *io_ctx, int signo, const ch
 }
 
 int
-python_plugin_io_log_subcmd(struct IOPluginContext *io_ctx, int argc, char * const argv[], char * const env[], const char **errstr)
+python_plugin_io_log_subcmd(struct IOPluginContext *io_ctx, char * const argv[], char * const env[], const char **errstr)
 {
     debug_decl(python_plugin_io_log_subcmd, PYTHON_DEBUG_CALLBACKS);
     struct PluginContext *plugin_ctx = BASE_CTX(io_ctx);
     PyThreadState_Swap(plugin_ctx->py_interpreter);
 
-    PyObject *py_argv = py_str_array_to_tuple_with_count(argc, argv);
+    PyObject *py_argv = py_str_array_to_tuple(argv);
     PyObject *py_env = py_str_array_to_tuple(env);
 
     int rc = python_plugin_api_rc_call(plugin_ctx, CALLBACK_PYNAME(log_subcmd),

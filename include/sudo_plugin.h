@@ -209,7 +209,7 @@ struct io_plugin {
 	const char **errstr);
     int (*log_suspend)(int signo, const char **errstr);
     struct sudo_plugin_event * (*event_alloc)(void);
-    int (*log_subcmd)(int argc, char * const argv[], char * const env[],
+    int (*log_subcmd)(char * const argv[], char * const env[],
                           const char **errstr);
 };
 

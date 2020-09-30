@@ -347,14 +347,14 @@ check_example_io_plugin_subcommand_log(void)
                               data.user_env, data.plugin_options, &errstr), SUDO_RC_OK);
     VERIFY_PTR(errstr, NULL);
 
-    char **argv = create_str_array(1, "whoami");
+    char **argv = create_str_array(2, "whoami", NULL);
     char **env = create_str_array(3, "ENV1=something", "ENV2=other", NULL);
-    VERIFY_INT(python_io->log_subcmd(1, argv, env, &errstr), SUDO_RC_OK);
+    VERIFY_INT(python_io->log_subcmd(argv, env, &errstr), SUDO_RC_OK);
     VERIFY_PTR(errstr, NULL);
     str_array_free(&argv);
 
-    argv = create_str_array(2, "passwd", "root");
-    VERIFY_INT(python_io->log_subcmd(2, argv, env, &errstr), SUDO_RC_REJECT);
+    argv = create_str_array(3, "passwd", "root", NULL);
+    VERIFY_INT(python_io->log_subcmd(argv, env, &errstr), SUDO_RC_REJECT);
     VERIFY_STR(errstr, "You are not allowed to change password");
 
     str_array_free(&argv);
