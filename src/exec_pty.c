@@ -1384,7 +1384,6 @@ open_received(const char *path, int oflag)
         }
     }
     return accept_reject;
-    return 1;
 }
 
 static void

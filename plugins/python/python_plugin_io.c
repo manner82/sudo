@@ -257,7 +257,7 @@ python_plugin_io_log_open(struct IOPluginContext *io_ctx, const char * path, int
     struct PluginContext *plugin_ctx = BASE_CTX(io_ctx);
     PyThreadState_Swap(plugin_ctx->py_interpreter);
 
-    int rc = python_plugin_api_rc_call(plugin_ctx, CALLBACK_PYNAME(log_subcmd),
+    int rc = python_plugin_api_rc_call(plugin_ctx, CALLBACK_PYNAME(log_open),
                                        Py_BuildValue("(si)", path, flags));
 
     CALLBACK_SET_ERROR(plugin_ctx, errstr);
