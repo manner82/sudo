@@ -809,6 +809,10 @@ sudoers_policy_exec_setup(char *argv[], char *envp[], mode_t cmnd_umask,
         if ((command_info[info_len++] = sudo_new_key_val("chroot", def_runchroot)) == NULL)
             goto oom;
     }
+    if (def_subcmd_detection) {
+	if ((command_info[info_len++] = strdup("subcmd_detection=true")) == NULL)
+	    goto oom;
+    }
     if (cmnd_umask != ACCESSPERMS) {
 	if (asprintf(&command_info[info_len++], "umask=0%o", (unsigned int)cmnd_umask) == -1)
 	    goto oom;

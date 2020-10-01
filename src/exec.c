@@ -248,7 +248,7 @@ exec_cmnd(struct command_details *details, int errfd)
 #endif
 	{
 	    sudo_execve(details->execfd, details->command, details->argv,
-		details->envp, ISSET(details->flags, CD_NOEXEC));
+		details->envp, ISSET(details->flags, CD_NOEXEC), ISSET(details->flags, CD_SUBCMD_DETECTION));
 	}
     }
     sudo_debug_printf(SUDO_DEBUG_ERROR, "unable to exec %s: %s",

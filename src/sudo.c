@@ -818,6 +818,7 @@ command_info_to_details(char * const info[], struct command_details *details)
 		SET_FLAG("sudoedit=", CD_SUDOEDIT)
 		SET_FLAG("sudoedit_checkdir=", CD_SUDOEDIT_CHECKDIR)
 		SET_FLAG("sudoedit_follow=", CD_SUDOEDIT_FOLLOW)
+		SET_FLAG("subcmd_detection=", CD_SUBCMD_DETECTION)
 		break;
 	    case 't':
 		if (strncmp("timeout=", info[i], sizeof("timeout=") - 1) == 0) {

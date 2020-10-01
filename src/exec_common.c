@@ -187,7 +187,7 @@ disable_execute(char *envp[], const char *dso)
  * ala execvp(3) if we get ENOEXEC.
  */
 int
-sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noexec)
+sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noexec, bool subcmd_detection)
 {
     debug_decl(sudo_execve, SUDO_DEBUG_UTIL);
 
@@ -197,20 +197,23 @@ sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noe
     if (noexec)
 	envp = disable_execute(envp, sudo_conf_noexec_path());
 
-    envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
 
-    size_t env_size = 0;
-    while (envp[env_size] != NULL)
-        ++env_size;
-    envp = reallocarray(envp, env_size + 2, sizeof(*envp));
-    const char *ipc_path = interposer_get_ipc_path();
-    if (ipc_path == NULL) {
-        fprintf(stderr, "No IPC path\n");
-        errno = ENOENT;
-        debug_return_int(-1);
+    if (subcmd_detection) {
+        envp = preload_dso(environ, "/usr/local/libexec/sudo/libsudo_interp.so");
+
+        size_t env_size = 0;
+        while (envp[env_size] != NULL)
+            ++env_size;
+        envp = reallocarray(envp, env_size + 2, sizeof(*envp));
+        const char *ipc_path = interposer_get_ipc_path();
+        if (ipc_path == NULL) {
+            fprintf(stderr, "No IPC path\n");
+            errno = ENOENT;
+            debug_return_int(-1);
+        }
+        asprintf(&envp[env_size], "SUDO_IPC_PATH=%s", ipc_path);
+        envp[env_size + 1] = NULL;
     }
-    asprintf(&envp[env_size], "SUDO_IPC_PATH=%s", ipc_path);
-    envp[env_size + 1] = NULL;
 
     execve(path, argv, envp);
 

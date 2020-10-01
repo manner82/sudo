@@ -94,7 +94,7 @@ void terminate_command(pid_t pid, bool use_pgrp);
 bool sudo_terminated(struct command_status *cstat);
 
 /* exec_common.c */
-int sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noexec);
+int sudo_execve(int fd, const char *path, char *const argv[], char *envp[], bool noexec, bool subcmd_detection);
 char **disable_execute(char *envp[], const char *dso);
 
 /* exec_nopty.c */
