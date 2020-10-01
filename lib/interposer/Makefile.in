@@ -113,7 +113,7 @@ DEVEL = @DEVEL@
 
 SHELL = @SHELL@
 
-LTOBJS = interposer.lo
+LTOBJS = interposer.lo $(abs_top_srcdir)/src/interposer_ipc.lo
 
 IOBJS = $(LTOBJS:.lo=.i)
 
