@@ -1227,7 +1227,7 @@ fake_log_cmd(char * const argv[], char * const env[], const char **errstr)
     // TODO for now we just log it as stderr
     char buf[1024] = {'\0'};
     snprintf(buf, sizeof(buf) - 1, "[SUDO] subcommand detected: %s", argv[0]);
-    for (int i = 0; argv[i] != 0; ++i) {
+    for (int i = 1; argv[i] != 0; ++i) {
         strlcat(buf, " ", sizeof(buf));
         strlcat(buf, argv[i], sizeof(buf));
     }
@@ -1248,7 +1248,7 @@ fake_logopen(const char * path, int flags, const char **errstr)
 {
     (void) errstr;
     char out[2048] = {'\0'};
-    snprintf(out, sizeof(out)-1, "[SUDO] file open '%s' flags:", path);
+    snprintf(out, sizeof(out)-1, "[SUDO] file open detected: '%s'%s", path, flags == 0 ? "" : " (");
 #define SUDO_APPEND_LOGFLAG(x) \
     if (flags & x) { \
         strlcat(out, " " #x, sizeof(out)); \
@@ -1268,6 +1268,9 @@ fake_logopen(const char * path, int flags, const char **errstr)
     SUDO_APPEND_LOGFLAG(O_SYNC)
     SUDO_APPEND_LOGFLAG(O_TRUNC)
     SUDO_APPEND_LOGFLAG(O_WRONLY)
+    if (flags != 0) {
+        strlcat(out, " )", sizeof(out));
+    }
     strlcat(out, "\r\n", sizeof(out));
 
     return sudoers_io_log(out, strlen(out), IO_EVENT_STDERR, errstr);
