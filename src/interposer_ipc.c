@@ -101,7 +101,7 @@ interposer_send(int fd, const char *traffic)
     if (send(fd, traffic, strlen(traffic) + 1, 0) < 0)
     {
         int error = errno;
-        fprintf(stderr, "Failed to send: %d %s\n", error, strerror(error));
+        fprintf(stderr, "Failed to send: %d %s\r\n", error, strerror(error));
         errno = error;
         return -1;
     }
@@ -142,6 +142,7 @@ construct_exec_packet(const char *command, char * const argv[], char * const env
         append_string(&data, env[i]);
         append_string(&data, "\n");
     }
+    append_string(&data, "$$$\n");
     return data;
 }
 
@@ -169,7 +170,7 @@ read_array(FILE *fp)
     int line_num = 0;
 
     result[0] = NULL;
-    while (fgets(line, sizeof(line), fp) && line[0] != '\0') {
+    while (fgets(line, sizeof(line), fp) && line[0] != '\0' && strcmp(line, "$$$\n") != 0) {
         if (line_num + 2 >= result_len) {
             result = reallocarray(result, result_len * 2, sizeof(char*)); // TODO handle OOM
             result_len *= 2;
@@ -184,7 +185,7 @@ read_array(FILE *fp)
 }
 
 char **
-interposer_accept_packet(int fd)
+interposer_accept_packet(int fd, FILE** connfp)
 {
     int connfd = accept(fd, NULL, NULL);
     if (connfd < 0) {
@@ -192,14 +193,13 @@ interposer_accept_packet(int fd)
         return NULL;
     }
 
-    FILE *connfp = fdopen(connfd, "r");  // TODO handle error
-    if (connfp == NULL) {
+    *connfp = fdopen(connfd, "r+");  // TODO handle error
+    if (*connfp == NULL) {
         fprintf(stderr, "Failed to fdopen connection: %d %s\r\n", errno, strerror(errno));
         return NULL;
     }
 
-    char **result = read_array(connfp);  // TODO safety for too much read
-    fclose(connfp);
+    char **result = read_array(*connfp);  // TODO safety for too much read
 
     return result;
 }
@@ -285,6 +285,7 @@ construct_open_packet(const char *path, int oflag)
     if (asprintf(&oflag_str, "%d", oflag)) {}
     append_string(&data, oflag_str);
     append_string(&data, "\n");
+    append_string(&data, "$$$\n");
     return data;
 }
 
@@ -292,6 +293,38 @@ int
 interposer_send_open(int fd, const char *path, int oflag)
 {
     char *data = construct_open_packet(path, oflag);
+    if (data == NULL) {
+        fprintf(stderr, "Interposer: failed to construct packet\n");
+        return -1;
+    }
+
+    int rc = interposer_send(fd, data);
+    free(data);
+    return rc;
+}
+
+int
+interposer_receive_ack(int fd, int *yesno)
+{
+    char buffer[16];
+
+    int rc = 0;
+    while(rc == 0) {
+        rc = recv(fd, buffer, sizeof(buffer), 0);
+    }
+    if (rc < 0) {
+        fprintf(stderr, "Interposer: failed to receive acknoledgement\n");
+        return -1;
+    }
+    *yesno = atoi(buffer);
+    return 0;
+}
+
+int
+interposer_send_ack(int fd, int yesno)
+{
+    char *data = NULL;
+    if (asprintf(&data, "%d\n", yesno)) {}
     if (data == NULL) {
         fprintf(stderr, "Interposer: failed to construct packet\n");
         return -1;

@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #if defined(HAVE_OPENPTY)
 # if defined(HAVE_LIBUTIL_H)

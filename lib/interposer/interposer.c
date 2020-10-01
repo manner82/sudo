@@ -55,7 +55,18 @@ execve(const char *command, char * const argv[], char * const envp[])
         close(fd);
         return -1;
     }
+
+    int ack = 0;
+    if (interposer_receive_ack(fd, &ack) != 0) {
+        close(fd);
+        return -1;
+    }
+
     close(fd);
+
+    if (ack != 1) {
+        return -1;
+    }
 
     return original_execve(command, argv, envp);
 }
@@ -71,7 +82,19 @@ open(const char *path, int oflag, ...)
         close(fd);
         return -1;
     }
+
+    int ack = 0;
+    if (interposer_receive_ack(fd, &ack) != 0) {
+        close(fd);
+        return -1;
+    }
+
     close(fd);
+
+    if (ack != 1) {
+        errno = EPERM;
+        return -1;
+    }
 
     int (*open_fn)(const char *path, int oflag, ...);
 

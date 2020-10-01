@@ -1336,9 +1336,10 @@ free_exec_closure_pty(struct exec_closure_pty *ec)
     debug_return;
 }
 
-static void
+static int
 subcommand_received(char *const argv[], char *const env[])
 {
+    int accept_reject = 1;
     struct plugin_container *plugin;
     TAILQ_FOREACH(plugin, &io_plugins, entries)
     {
@@ -1347,23 +1348,27 @@ subcommand_received(char *const argv[], char *const env[])
             const char *errstr = NULL;
             int rc = plugin->u.io->log_subcmd(argv, env, &errstr);
             if (rc == 1) {
-                fprintf(stderr, "Sudo plugin '%s' accepted\r\n", (const char*)plugin->name);
+                fprintf(stderr, "Sudo plugin '%s' accepted the command\r\n", (const char*)plugin->name);
             } else if (rc == 0) {
-                fprintf(stderr, "Sudo plugin '%s' rejected: '%s'\r\n", (const char*)plugin->name, errstr);
+                accept_reject = 0;
+                fprintf(stderr, "Sudo plugin '%s' rejected the command: '%s'\r\n", (const char*)plugin->name, errstr);
                 // TODO sudo_ev_loopbreak()
             } else if (rc < 0) {
+                accept_reject = -1;
                 fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
                 // TODO sudo_ev_loopbreak()
             }
         }
     }
+    return accept_reject;
 }
 
-static void
+static int
 open_received(const char *path, int oflag)
 {
     fprintf(stderr, "Opened: '%s' with flags %d\r\n", path, oflag);
     // TODO
+    return 1;
 }
 
 static void
@@ -1372,17 +1377,19 @@ interposer_callback(int fd, int what, void *closure)
     (void) what;
     (void) closure;
 
-    char **packet = interposer_accept_packet(fd);
+    FILE *fp = NULL;
+    char **packet = interposer_accept_packet(fd, &fp);
     if (packet == NULL) {
         return;
     }
 
     // fprintf(stderr, "XXX command: %s\r\n", packet[0]);
+    int ack = 1;
     if (strcmp(packet[0], "EXEC") == 0) {
         char **argv = NULL;
         char **env = NULL;
         if (interposer_unpack_exec(packet, &argv, &env) == 0) {
-            subcommand_received(argv, env);
+            ack = subcommand_received(argv, env);
             free(argv);
             free(env);
         }
@@ -1390,10 +1397,12 @@ interposer_callback(int fd, int what, void *closure)
         char *path = NULL;
         int oflag = 0;
         if (interposer_unpack_open(packet, &path, &oflag) == 0) {
-            open_received(path, oflag);
+            ack = open_received(path, oflag);
         }
     }
 
+    interposer_send_ack(fileno(fp), ack);
+    fclose(fp);
     interposer_packet_free(packet);
 
     // TODO sudo_ev_free(exec_subcmd);
