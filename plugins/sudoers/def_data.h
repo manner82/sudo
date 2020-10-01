@@ -260,6 +260,8 @@
 #define def_runcwd              (sudo_defs_table[I_RUNCWD].sd_un.str)
 #define I_RUNCHROOT             129
 #define def_runchroot           (sudo_defs_table[I_RUNCHROOT].sd_un.str)
+#define I_SUBCMD_DETECTION      130
+#define def_subcmd_detection    (sudo_defs_table[I_SUBCMD_DETECTION].sd_un.flag)
 
 enum def_tuple {
 	never,

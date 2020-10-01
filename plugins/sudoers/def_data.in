@@ -405,3 +405,6 @@ runcwd
 runchroot
 	T_STR|T_BOOL|T_CHPATH
 	"Root directory to change to before executing the command: %s"
+subcmd_detection
+	T_FLAG
+	"Allows sudo to intercept command executions after shell escape"

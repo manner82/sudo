@@ -560,6 +560,10 @@ struct sudo_defs_types sudo_defs_table[] = {
 	N_("Root directory to change to before executing the command: %s"),
 	NULL,
     }, {
+	"subcmd_detection", T_FLAG,
+	N_("Allows sudo to intercept command executions after shell escape"),
+	NULL,
+    }, {
 	NULL, 0, NULL
     }
 };
