@@ -7,13 +7,14 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "config.h"
 #include "sudo_compat.h"
 #include "sudo_debug.h"
 
 #include "interposer_ipc.h"
-
 
 __attribute__((constructor)) void
 interposer_init(void)
@@ -54,8 +55,51 @@ execve(const char *command, char * const argv[], char * const envp[])
         close(fd);
         return -1;
     }
-
     close(fd);
 
     return original_execve(command, argv, envp);
+}
+
+sudo_dso_public int
+open(const char *path, int oflag, ...)
+{
+    fprintf(stderr, "XXX open %s\r\n", path);
+#if 0
+    int fd = interposer_client_connect();
+    if (fd < 0)
+        return -1;
+
+    if (interposer_send_exec(fd, command, argv, envp) != 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+#endif
+
+    if (strcmp("/etc/sudoers", path) == 0) {
+        errno = EPERM;
+        return -1;
+    }
+
+    int (*open_fn)(const char *path, int oflag, ...);
+
+    /* Find the "next" execve function in the dynamic chain. */
+    open_fn = dlsym(RTLD_NEXT, "open");
+    if (open_fn == NULL) {
+        return -1; /* should not happen */
+    }
+
+    // fprintf(stderr, "[INTERPOSER] -> running command: %s\n", command);
+
+    /* Execute the command using the "real" execve function. */
+
+    if ((oflag & O_CREAT) == 0) {
+        va_list extra_args;
+        va_start(extra_args, oflag);
+        mode_t mode = va_arg(extra_args, mode_t);
+        va_end(extra_args);
+        return (*open_fn)(path, oflag, mode);
+    }
+
+    return (*open_fn)(path, oflag);
 }
