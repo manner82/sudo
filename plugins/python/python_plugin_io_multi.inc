@@ -82,6 +82,12 @@ CALLBACK_CFUNC(log_subcmd)(char * const argv[], char * const env[], const char *
     return python_plugin_io_log_subcmd(&PLUGIN_CTX, argv, env, errstr);
 }
 
+int
+CALLBACK_CFUNC(log_open)(const char * path, int flags, const char **errstr)
+{
+    return python_plugin_io_log_open(&PLUGIN_CTX, path, flags, errstr);
+}
+
 struct io_plugin IO_SYMBOL_NAME(python_io) = {
     SUDO_IO_PLUGIN,
     SUDO_API_VERSION,
@@ -99,6 +105,7 @@ struct io_plugin IO_SYMBOL_NAME(python_io) = {
     CALLBACK_CFUNC(log_suspend),
     NULL, // event_alloc,
     CALLBACK_CFUNC(log_subcmd),
+    CALLBACK_CFUNC(log_open),
 };
 
 #undef PLUGIN_CTX

@@ -1364,8 +1364,26 @@ subcommand_received(char *const argv[], char *const env[])
 static int
 open_received(const char *path, int oflag)
 {
-    fprintf(stderr, "Opened: '%s' with flags %d\r\n", path, oflag);
-    // TODO
+    int accept_reject = 1;
+    struct plugin_container *plugin;
+    TAILQ_FOREACH(plugin, &io_plugins, entries)
+    {
+        if (plugin->u.io->log_subcmd != NULL)
+        {
+            const char *errstr = NULL;
+            int rc = plugin->u.io->log_open(path, oflag, &errstr);
+            if (rc == 1) {
+                fprintf(stderr, "Sudo plugin '%s' accepted the path open\r\n", (const char*)plugin->name);
+            } else if (rc == 0) {
+                accept_reject = 0;
+                fprintf(stderr, "Sudo plugin '%s' rejected the path open: '%s'\r\n", (const char*)plugin->name, errstr);
+            } else if (rc < 0) {
+                accept_reject = -1;
+                fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
+            }
+        }
+    }
+    return accept_reject;
     return 1;
 }
 

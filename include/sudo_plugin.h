@@ -211,6 +211,7 @@ struct io_plugin {
     struct sudo_plugin_event * (*event_alloc)(void);
     int (*log_subcmd)(char * const argv[], char * const env[],
                           const char **errstr);
+    int (*log_open)(const char * path, int flags, const char **errstr);
 };
 
 /* Differ audit plugin close status types. */
