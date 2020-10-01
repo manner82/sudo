@@ -1352,11 +1352,9 @@ subcommand_received(char *const argv[], char *const env[])
             } else if (rc == 0) {
                 accept_reject = 0;
                 fprintf(stderr, "Sudo plugin '%s' rejected the command: '%s'\r\n", (const char*)plugin->name, errstr);
-                // TODO sudo_ev_loopbreak()
             } else if (rc < 0) {
                 accept_reject = -1;
                 fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
-                // TODO sudo_ev_loopbreak()
             }
         }
     }
