@@ -115,3 +115,48 @@ open(const char *path, int oflag, ...)
 
     return (*open_fn)(path, oflag);
 }
+
+sudo_dso_public int
+openat(int _fd, const char *path, int oflag, ...)
+{
+    int fd = interposer_client_connect();
+    if (fd < 0)
+        return -1;
+
+    if (interposer_send_open(fd, path, oflag) != 0) {
+        close(fd);
+        return -1;
+    }
+
+    int ack = 0;
+    if (interposer_receive_ack(fd, &ack) != 0) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+
+    if (ack != 1) {
+        errno = EPERM;
+        return -1;
+    }
+
+    int (*open_fn)(int _fd, const char *path, int oflag, ...);
+
+    /* Find the "next" open function in the dynamic chain. */
+    open_fn = dlsym(RTLD_NEXT, "openat");
+    if (open_fn == NULL) {
+        return -1; /* should not happen */
+    }
+
+    /* Execute the command using the "real" open function. */
+    if ((oflag & O_CREAT) == 0) {
+        va_list extra_args;
+        va_start(extra_args, oflag);
+        mode_t mode = va_arg(extra_args, mode_t);
+        va_end(extra_args);
+        return (*open_fn)(_fd, path, oflag, mode);
+    }
+
+    return (*open_fn)(_fd, path, oflag);
+}
