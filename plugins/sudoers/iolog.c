@@ -61,9 +61,6 @@ static struct sudoers_io_operations {
 	struct timespec *delay, const char **errstr);
     int (*suspend)(const char *signame, struct timespec *delay,
 	const char **errstr);
-    int (*subcmd)(char * const argv[], char * const env[],
-	const char **errstr);
-    int (*log_open)(const char *path, int flags, const char **errstr);
 } io_operations;
 
 #ifdef SUDOERS_IOLOG_CLIENT
@@ -1224,147 +1221,62 @@ bad:
 }
 
 static int
-sudoers_io_subcmd_local(char * const argv[], char * const env[],
-                        const char **errstr)
+fake_log_cmd(char * const argv[], char * const env[], const char **errstr)
 {
-    (void) errstr;
-
-    fprintf(stderr, "%s: argv: ", __PRETTY_FUNCTION__);
-    for (int i = 0; argv[i] != NULL; ++i)
-        fprintf(stderr, "%s ", argv[i]);
-    fprintf(stderr, "\r\n");
-
-#if 0
-    fprintf(stderr, "%s: env: ", __PRETTY_FUNCTION__);
-    for (int i = 0; env[i] != NULL; ++i)
-        fprintf(stderr, "%s ", env[i]);
-    fprintf(stderr, "\r\n");
-#endif
-
-    return 1;
-}
-
-#ifdef SUDOERS_IOLOG_CLIENT
-static int
-sudoers_io_subcmd_remote(char * const argv[], char * const env[],
-                         const char **errstr)
-{
-    (void) errstr;
     (void) env;
-    printf("%s: argv[0]='%s'\n", __PRETTY_FUNCTION__, argv[0]);
+    // TODO for now we just log it as stderr
+    char buf[1024] = {'\0'};
+    snprintf(buf, sizeof(buf) - 1, "[SUDO] subcommand detected: %s", argv[0]);
+    for (int i = 0; argv[i] != 0; ++i) {
+        strlcat(buf, " ", sizeof(buf));
+        strlcat(buf, argv[i], sizeof(buf));
+    }
+    strlcat(buf, "\r\n", sizeof(buf));
+
+    sudoers_io_log(buf, strlen(buf)+1, IO_EVENT_STDERR, errstr);
     return 1;
 }
-#endif // SUDOERS_IOLOG_CLIENT
 
 static int
-sudoers_io_subcmd(char * const argv[], char * const env[],
-                  const char **errstr)
+sudoers_io_subcmd(char * const argv[], char * const env[], const char **errstr)
 {
-    struct timespec now, delay;
-    const char *ioerror = NULL;
-    int ret = -1;
-    debug_decl(sudoers_io_subcmd, SUDOERS_DEBUG_PLUGIN);
-
-    if (sudo_gettime_awake(&now) == -1) {
-	sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_ERRNO,
-	    "%s: unable to get time of day", __func__);
-	ioerror = N_("unable to read the clock");
-	goto bad;
-    }
-    sudo_timespecsub(&now, &last_time, &delay);
-
-    ret = io_operations.subcmd(argv, env, &ioerror);
-
-    last_time.tv_sec = now.tv_sec;
-    last_time.tv_nsec = now.tv_nsec;
-
-bad:
-    if (ret == -1) {
-	if (ioerror != NULL && !warned) {
-	    char *cp;
-
-	    if (asprintf(&cp, N_("unable to write to I/O log file: %s"),
-		    ioerror) != -1) {
-		*errstr = cp;
-	    }
-	    if (!warned) {
-		/* Only warn about I/O log file errors once. */
-		log_warningx(SLOG_SEND_MAIL,
-		    N_("unable to write to I/O log file: %s"), ioerror);
-		warned = true;
-	    }
-	}
-
-	/* Ignore errors if they occur if the policy says so. */
-	if (iolog_details.ignore_iolog_errors)
-	    ret = 1;
-    }
-
-    debug_return_int(ret);
+    return fake_log_cmd(argv, env, errstr);  // TODO
 }
 
 static int
-sudoers_io_logopen_local(const char * path, int flags, const char **errstr)
+fake_logopen(const char * path, int flags, const char **errstr)
 {
     (void) errstr;
-    fprintf(stderr, "%s: file open '%s' (flags=%d)\r\n", __PRETTY_FUNCTION__, path, flags);
-    return 1; /* accept */
-}
+    char out[2048] = {'\0'};
+    snprintf(out, sizeof(out)-1, "[SUDO] file open '%s' flags:", path);
+#define SUDO_APPEND_LOGFLAG(x) \
+    if (flags & x) { \
+        strlcat(out, " " #x, sizeof(out)); \
+    }
+    SUDO_APPEND_LOGFLAG(O_APPEND)
+    SUDO_APPEND_LOGFLAG(O_CLOEXEC)
+    SUDO_APPEND_LOGFLAG(O_CREAT)
+    SUDO_APPEND_LOGFLAG(O_DIRECTORY)
+    SUDO_APPEND_LOGFLAG(O_DSYNC)
+    SUDO_APPEND_LOGFLAG(O_EXCL)
+    SUDO_APPEND_LOGFLAG(O_NOCTTY)
+    SUDO_APPEND_LOGFLAG(O_NOFOLLOW)
+    SUDO_APPEND_LOGFLAG(O_NONBLOCK)
+    SUDO_APPEND_LOGFLAG(O_RDONLY)
+    SUDO_APPEND_LOGFLAG(O_RDWR)
+    SUDO_APPEND_LOGFLAG(O_RSYNC)
+    SUDO_APPEND_LOGFLAG(O_SYNC)
+    SUDO_APPEND_LOGFLAG(O_TRUNC)
+    SUDO_APPEND_LOGFLAG(O_WRONLY)
+    strlcat(out, "\r\n", sizeof(out));
 
-#ifdef SUDOERS_IOLOG_CLIENT
-static int
-sudoers_io_logopen_remote(const char * path, int flags, const char **errstr)
-{
-    (void) errstr;
-    fprintf(stderr, "%s: file open '%s' (flags=%d)\r\n", __PRETTY_FUNCTION__, path, flags);
-    return 1; /* accept */
+    return sudoers_io_log(out, strlen(out), IO_EVENT_STDERR, errstr);
 }
-#endif // SUDOERS_IOLOG_CLIENT
 
 static int
 sudoers_io_log_open(const char *path, int flags, const char **errstr)
 {
-    struct timespec now, delay;
-    const char *ioerror = NULL;
-    int ret = -1;
-    debug_decl(sudoers_io_log_open, SUDOERS_DEBUG_PLUGIN);
-
-    if (sudo_gettime_awake(&now) == -1) {
-	sudo_debug_printf(SUDO_DEBUG_ERROR|SUDO_DEBUG_ERRNO,
-	    "%s: unable to get time of day", __func__);
-	ioerror = N_("unable to read the clock");
-	goto bad;
-    }
-    sudo_timespecsub(&now, &last_time, &delay);
-
-    ret = io_operations.log_open(path, flags, &ioerror);
-
-    last_time.tv_sec = now.tv_sec;
-    last_time.tv_nsec = now.tv_nsec;
-
-bad:
-    if (ret == -1) {
-	if (ioerror != NULL && !warned) {
-	    char *cp;
-
-	    if (asprintf(&cp, N_("unable to write to I/O log file: %s"),
-		    ioerror) != -1) {
-		*errstr = cp;
-	    }
-	    if (!warned) {
-		/* Only warn about I/O log file errors once. */
-		log_warningx(SLOG_SEND_MAIL,
-		    N_("unable to write to I/O log file: %s"), ioerror);
-		warned = true;
-	    }
-	}
-
-	/* Ignore errors if they occur if the policy says so. */
-	if (iolog_details.ignore_iolog_errors)
-	    ret = 1;
-    }
-
-    debug_return_int(ret);
+    return fake_logopen(path, flags, errstr);
 }
 
 /*
@@ -1382,8 +1294,6 @@ sudoers_io_setops(void)
 	io_operations.log = sudoers_io_log_remote;
 	io_operations.change_winsize = sudoers_io_change_winsize_remote;
 	io_operations.suspend = sudoers_io_suspend_remote;
-	io_operations.subcmd = sudoers_io_subcmd_remote;
-        io_operations.log_open = sudoers_io_logopen_remote;
     } else
 #endif /* SUDOERS_IOLOG_CLIENT */
     {
@@ -1392,8 +1302,6 @@ sudoers_io_setops(void)
 	io_operations.log = sudoers_io_log_local;
 	io_operations.change_winsize = sudoers_io_change_winsize_local;
 	io_operations.suspend = sudoers_io_suspend_local;
-	io_operations.subcmd = sudoers_io_subcmd_local;
-        io_operations.log_open = sudoers_io_logopen_local;
     }
 
     debug_return;

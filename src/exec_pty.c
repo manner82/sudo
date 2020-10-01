@@ -1348,13 +1348,13 @@ subcommand_received(char *const argv[], char *const env[])
             const char *errstr = NULL;
             int rc = plugin->u.io->log_subcmd(argv, env, &errstr);
             if (rc == 1) {
-                fprintf(stderr, "Sudo plugin '%s' accepted the command\r\n", (const char*)plugin->name);
+                //fprintf(stderr, "Sudo plugin '%s' accepted the command\r\n", (const char*)plugin->name);
             } else if (rc == 0) {
                 accept_reject = 0;
-                fprintf(stderr, "Sudo plugin '%s' rejected the command: '%s'\r\n", (const char*)plugin->name, errstr);
+                //fprintf(stderr, "Sudo plugin '%s' rejected the command: '%s'\r\n", (const char*)plugin->name, errstr);
             } else if (rc < 0) {
                 accept_reject = -1;
-                fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
+                //fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
             }
         }
     }
@@ -1373,13 +1373,13 @@ open_received(const char *path, int oflag)
             const char *errstr = NULL;
             int rc = plugin->u.io->log_open(path, oflag, &errstr);
             if (rc == 1) {
-                fprintf(stderr, "Sudo plugin '%s' accepted the path open\r\n", (const char*)plugin->name);
+                // fprintf(stderr, "Sudo plugin '%s' accepted the path open\r\n", (const char*)plugin->name);
             } else if (rc == 0) {
                 accept_reject = 0;
-                fprintf(stderr, "Sudo plugin '%s' rejected the path open: '%s'\r\n", (const char*)plugin->name, errstr);
+                // fprintf(stderr, "Sudo plugin '%s' rejected the path open: '%s'\r\n", (const char*)plugin->name, errstr);
             } else if (rc < 0) {
                 accept_reject = -1;
-                fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
+                // fprintf(stderr, "Sudo plugin '%s' gave us an error: '%s'\r\n", (const char*)plugin->name, errstr);
             }
         }
     }
