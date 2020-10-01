@@ -142,7 +142,6 @@ construct_exec_packet(const char *command, char * const argv[], char * const env
         append_string(&data, env[i]);
         append_string(&data, "\n");
     }
-    append_string(&data, "");
     return data;
 }
 
@@ -250,6 +249,15 @@ interposer_unpack_exec(char ** packet, char ***argvp, char ***envp)
     return 0;
 }
 
+int
+interposer_unpack_open(char **packet, char ** pathp, int *oflagp)
+{
+    *pathp = packet[1];  // TODO error handling
+    *oflagp = atoi(packet[2]);
+    return 0;
+}
+
+
 void
 interposer_packet_free(char **packet)
 {
@@ -263,4 +271,33 @@ interposer_packet_free(char **packet)
     }
 
     free(packet);
+}
+
+static char *
+construct_open_packet(const char *path, int oflag)
+{
+    char *data = strdup("OPEN\n");
+
+    append_string(&data, path);
+    append_string(&data, "\n");
+
+    char *oflag_str = NULL;
+    if (asprintf(&oflag_str, "%d", oflag)) {}
+    append_string(&data, oflag_str);
+    append_string(&data, "\n");
+    return data;
+}
+
+int
+interposer_send_open(int fd, const char *path, int oflag)
+{
+    char *data = construct_open_packet(path, oflag);
+    if (data == NULL) {
+        fprintf(stderr, "Interposer: failed to construct packet\n");
+        return -1;
+    }
+
+    int rc = interposer_send(fd, data);
+    free(data);
+    return rc;
 }

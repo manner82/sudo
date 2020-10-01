@@ -1360,6 +1360,13 @@ subcommand_received(char *const argv[], char *const env[])
 }
 
 static void
+open_received(const char *path, int oflag)
+{
+    fprintf(stderr, "Opened: '%s' with flags %d\r\n", path, oflag);
+    // TODO
+}
+
+static void
 interposer_callback(int fd, int what, void *closure)
 {
     (void) what;
@@ -1370,7 +1377,7 @@ interposer_callback(int fd, int what, void *closure)
         return;
     }
 
-    fprintf(stderr, "XXX command: %s\r\n", packet[0]);
+    // fprintf(stderr, "XXX command: %s\r\n", packet[0]);
     if (strcmp(packet[0], "EXEC") == 0) {
         char **argv = NULL;
         char **env = NULL;
@@ -1380,7 +1387,11 @@ interposer_callback(int fd, int what, void *closure)
             free(env);
         }
     } else if (strcmp(packet[0], "OPEN") == 0) {
-        // TODO
+        char *path = NULL;
+        int oflag = 0;
+        if (interposer_unpack_open(packet, &path, &oflag) == 0) {
+            open_received(path, oflag);
+        }
     }
 
     interposer_packet_free(packet);

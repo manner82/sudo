@@ -63,36 +63,25 @@ execve(const char *command, char * const argv[], char * const envp[])
 sudo_dso_public int
 open(const char *path, int oflag, ...)
 {
-    fprintf(stderr, "XXX open %s\r\n", path);
-#if 0
     int fd = interposer_client_connect();
     if (fd < 0)
         return -1;
 
-    if (interposer_send_exec(fd, command, argv, envp) != 0) {
+    if (interposer_send_open(fd, path, oflag) != 0) {
         close(fd);
         return -1;
     }
     close(fd);
-#endif
-
-    if (strcmp("/etc/sudoers", path) == 0) {
-        errno = EPERM;
-        return -1;
-    }
 
     int (*open_fn)(const char *path, int oflag, ...);
 
-    /* Find the "next" execve function in the dynamic chain. */
+    /* Find the "next" open function in the dynamic chain. */
     open_fn = dlsym(RTLD_NEXT, "open");
     if (open_fn == NULL) {
         return -1; /* should not happen */
     }
 
-    // fprintf(stderr, "[INTERPOSER] -> running command: %s\n", command);
-
-    /* Execute the command using the "real" execve function. */
-
+    /* Execute the command using the "real" open function. */
     if ((oflag & O_CREAT) == 0) {
         va_list extra_args;
         va_start(extra_args, oflag);
