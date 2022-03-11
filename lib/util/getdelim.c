@@ -56,6 +56,7 @@ sudo_getdelim(char **buf, size_t *bufsize, int delim, FILE *fp)
 	    cp = tmp + (cp - *buf);
 	    *buf = tmp;
 	    *bufsize *= 2;
+	    ep = tmp + *bufsize;
 	}
 	if ((ch = getc(fp)) == EOF) {
 	    if (feof(fp))
