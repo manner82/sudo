@@ -59,6 +59,7 @@ int py_sudo_conv(int num_msgs, const struct sudo_conv_message msgs[],
                  struct sudo_conv_reply replies[], struct sudo_conv_callback *callback);
 
 void py_log_last_error(const char *context_message);
+void py_log_last_error2(const char *context_message, bool remove);
 
 char *py_create_string_rep(PyObject *py_object);
 

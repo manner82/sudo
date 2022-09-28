@@ -125,7 +125,7 @@ py_create_traceback_string(PyObject *py_traceback)
 }
 
 void
-py_log_last_error(const char *context_message)
+py_log_last_error2(const char *context_message, bool remove)
 {
     debug_decl(py_log_last_error, PYTHON_DEBUG_INTERNAL);
     if (!PyErr_Occurred()) {
@@ -150,10 +150,21 @@ py_log_last_error(const char *context_message)
         free(traceback);
     }
 
-    Py_XDECREF(py_type);
-    Py_XDECREF(py_message);
-    Py_XDECREF(py_traceback);
+    if (remove) {
+        Py_XDECREF(py_type);
+        Py_XDECREF(py_message);
+        Py_XDECREF(py_traceback);
+    } else {
+        PyErr_Restore(py_type, py_message, py_traceback);
+    }
+
     debug_return;
+}
+
+void
+py_log_last_error(const char *context_message)
+{
+    py_log_last_error2(context_message, true);
 }
 
 PyObject *

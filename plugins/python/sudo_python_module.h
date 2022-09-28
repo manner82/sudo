@@ -29,6 +29,7 @@ extern PyObject *sudo_exc_PluginReject;  // a reject with message
 extern PyObject *sudo_exc_PluginError;   // an error with message
 
 extern PyTypeObject *sudo_type_Plugin;
+extern PyTypeObject *sudo_type_SudoersPolicyPlugins;
 extern PyTypeObject *sudo_type_ConvMessage;
 
 extern PyObject *sudo_type_LogHandler;
@@ -41,6 +42,9 @@ int sudo_module_register_importblocker(void);
 
 CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION
 int sudo_module_register_conv_message(PyObject *py_module);
+
+CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION
+int sudo_module_register_sudoers_policy_plugin(PyObject *py_module);
 
 CPYCHECKER_NEGATIVE_RESULT_SETS_EXCEPTION
 int sudo_module_ConvMessage_to_c(PyObject *py_conv_message, struct sudo_conv_message *conv_message);
