@@ -283,6 +283,11 @@ _sudo_SudoersPolicyPlugin__init_session(PyObject *py_self, PyObject *py_args, Py
 
     py_debug_python_call("SudoersPolicyPlugin", "init_session", py_args, py_kwargs, PYTHON_DEBUG_C_CALLS);
 
+    // TODO
+
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
+
     debug_return_ptr_pynone;
 }
 
@@ -295,6 +300,11 @@ _sudo_SudoersPolicyPlugin__list(PyObject *py_self, PyObject *py_args, PyObject *
     debug_decl(_sudo_SudoersPolicyPlugin__list, PYTHON_DEBUG_C_CALLS);
 
     py_debug_python_call("SudoersPolicyPlugin", "list", py_args, py_kwargs, PYTHON_DEBUG_C_CALLS);
+
+    // TODO
+
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
 
     debug_return_ptr_pynone;
 }
@@ -309,6 +319,22 @@ _sudo_SudoersPolicyPlugin__validate(PyObject *py_self, PyObject *py_args, PyObje
 
     py_debug_python_call("SudoersPolicyPlugin", "validate", py_args, py_kwargs, PYTHON_DEBUG_C_CALLS);
 
+    if (policy_plugin == NULL) {
+        PyErr_Format(sudo_exc_SudoException, "%s: Constructor was not called!", __func__);
+        goto cleanup;
+    }
+
+    const char *error_str = NULL;
+    int rc = policy_plugin->validate(&error_str);
+    if (rc != SUDO_RC_OK) {
+        PyErr_Format(sudo_exc_SudoException, "%s: Error during validate %d - %s", __func__, rc, error_str);
+        goto cleanup;
+    }
+
+cleanup:
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
+
     debug_return_ptr_pynone;
 }
 
@@ -321,6 +347,31 @@ _sudo_SudoersPolicyPlugin__invalidate(PyObject *py_self, PyObject *py_args, PyOb
     debug_decl(_sudo_SudoersPolicyPlugin__invalidate, PYTHON_DEBUG_C_CALLS);
 
     py_debug_python_call("SudoersPolicyPlugin", "invalidate", py_args, py_kwargs, PYTHON_DEBUG_C_CALLS);
+
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
+
+    PyObject *py_empty = PyTuple_New(0);
+    static const char *keywords[] = { "self", "remove", NULL };
+    if (!PyArg_ParseTupleAndKeywords(py_args ? py_args : py_empty, py_kwargs,
+                                     "Oi|:sudo.SudoersPolicyPlugin.invalidate",
+                                     (char **)keywords, &py_self, &remove))
+    {
+        goto cleanup;
+    }
+
+    if (policy_plugin == NULL) {
+        PyErr_Format(sudo_exc_SudoException, "%s: Constructor was not called!", __func__);
+        goto cleanup;
+    }
+
+    policy_plugin->invalidate(remove);
+
+cleanup:
+    Py_CLEAR(py_empty);
+
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
 
     debug_return_ptr_pynone;
 }
@@ -352,10 +403,14 @@ _sudo_SudoersPolicyPlugin__show_version(PyObject *py_self, PyObject *py_args, Py
         goto cleanup;
     }
 
-    rc = policy_plugin->show_version(is_verbose);
+    rc = policy_plugin->show_version(is_verbose);  // TODO raise exception instead?
 
 cleanup:
     Py_CLEAR(py_empty);
+
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
+
     debug_return_ptr(PyLong_FromLong(rc));
 }
 
@@ -368,6 +423,32 @@ _sudo_SudoersPolicyPlugin__close(PyObject *py_self, PyObject *py_args, PyObject 
     debug_decl(_sudo_SudoersPolicyPlugin__close, PYTHON_DEBUG_C_CALLS);
 
     py_debug_python_call("SudoersPolicyPlugin", "close", py_args, py_kwargs, PYTHON_DEBUG_C_CALLS);
+
+    int exit_status = 0, error = 0;
+    PyObject *py_empty = PyTuple_New(0);
+    static const char *keywords[] = { "self", "exit_status", "error", NULL };
+    if (!PyArg_ParseTupleAndKeywords(py_args ? py_args : py_empty, py_kwargs,
+                                     "Oii|:sudo.SudoersPolicyPlugin.close",
+                                     (char **)keywords, &py_self, &exit_status, &error))
+    {
+        goto cleanup;
+    }
+
+    if (policy_plugin == NULL) {
+        PyErr_Format(sudo_exc_SudoException, "%s: Constructor was not called!", __func__);
+        goto cleanup;
+    }
+
+    int rc = policy_plugin->close(exit_status, error);
+    if (rc != SUDO_RC_OK) {
+        PyErr_Format(sudo_exc_SudoException, "%s: close of sudoers policy plugin returned '%d' - '%s'",
+                     __func__, ret, error_msg == NULL ? "" : error_msg);
+    }
+
+cleanup:
+    Py_CLEAR(py_empty);
+    if (PyErr_Occurred())
+        debug_return_ptr(NULL);
 
     debug_return_ptr_pynone;
 }
@@ -431,4 +512,3 @@ cleanup:
     Py_CLEAR(py_class);
     debug_return_int(rc);
 }
-
