@@ -351,6 +351,7 @@ _sudo_SudoersPolicyPlugin__invalidate(PyObject *py_self, PyObject *py_args, PyOb
     if (PyErr_Occurred())
         debug_return_ptr(NULL);
 
+    int remove = 0;
     PyObject *py_empty = PyTuple_New(0);
     static const char *keywords[] = { "self", "remove", NULL };
     if (!PyArg_ParseTupleAndKeywords(py_args ? py_args : py_empty, py_kwargs,
@@ -439,11 +440,7 @@ _sudo_SudoersPolicyPlugin__close(PyObject *py_self, PyObject *py_args, PyObject 
         goto cleanup;
     }
 
-    int rc = policy_plugin->close(exit_status, error);
-    if (rc != SUDO_RC_OK) {
-        PyErr_Format(sudo_exc_SudoException, "%s: close of sudoers policy plugin returned '%d' - '%s'",
-                     __func__, ret, error_msg == NULL ? "" : error_msg);
-    }
+    policy_plugin->close(exit_status, error);
 
 cleanup:
     Py_CLEAR(py_empty);
